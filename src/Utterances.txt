@@ -1,0 +1,86 @@
+AllOffIntent All Off
+AllOffIntent GoodNight
+AllOffIntent Off
+AppleTVIntent Apple TV
+AppleTVIntent Watch Apple TV
+AudioOffIntent Audio Off
+AudioOffIntent Turn Off Audio
+AudioOnIntent Audio On
+AudioOnIntent Turn On Audio
+BedIntent Bed
+BedIntent Go to Bed
+BluerayOffToggleIntent Blueray Off
+BluerayOffToggleIntent Turn Off Blueray
+BluerayOnToggleIntent Blueray On
+BluerayOnToggleIntent Turn On Blueray
+CableIntent Cable
+CableIntent Watch Cable
+DecreaseVolumeIntent Decrease Volume
+DecreaseVolumeIntent Lower It Down
+DecreaseVolumeIntent Turn It down
+DVDIntent DVD
+DVDIntent Watch a DVD
+DVDOffToggleIntent DVD Off
+DVDOffToggleIntent Turn Off DVD
+DVDOnToggleIntent DVD On
+DVDOnToggleIntent Turn On DVD
+DVROffToggleIntent DVD Off
+DVROffToggleIntent Turn Off DVR
+DVROnToggleIntent DVR On
+DVROnToggleIntent Turn On DVR
+FastForwardIntent Fast Forward
+FireTVIntent Fire TV
+FireTVIntent Watch Fire TV
+GameIntent Game
+GameIntent Play Game
+GoBackIntent Back
+GoBackIntent Go Back
+IncreaseVolumeIntent Higher It Up
+IncreaseVolumeIntent Increase Volume
+IncreaseVolumeIntent Turn It up
+ListenMusicIntnet Listen to Music
+ListenMusicIntnet Music
+ListenMusicIntnet Music on
+MorningIntent Good Morning
+MorningIntent Morning
+MuteIntent Mute
+NetflixIntent Netflix
+NetflixIntent Netflix On
+NetflixIntent Watch Netflix
+NextChannelIntent Next Channel
+NextChannelIntent Channel Up
+NextIntent Next
+NightIntent Good Night
+NightIntent Night
+PauseIntent Pause
+PlayIntent Play
+PreviousChannelIntent Channel Down
+PreviousChannelIntent Previous Channel
+PSFourIntent Play PS Four
+PSFourIntent PS Four
+PSThreeIntent Play PS Three
+PSThreeIntent PS Three
+RewindIntent Rewind
+RokuIntent Roku
+RokuIntent Watch Roku
+SkipIntent Skip
+SonosIntent Listen to Sonos
+SonosIntent Sonos
+TivoOffToggleIntent Tivo Off
+TivoOffToggleIntent Turn Off Tivo
+TivoOnToggleIntent Tivo On
+TivoOnToggleIntent Turn On Tivo
+TVOffIntent Turn Off TV
+TVOffIntent TV off
+TVOnIntent Turn On TV
+TVOnIntent TV On
+WatchMovieIntent Movie
+WatchMovieIntent Movie On
+WatchMovieIntent Watch a Movie
+WatchTVIntent TV
+WatchTVIntent Watch the Tube
+WatchTVIntent Watch TV
+WiiIntent Play Wii
+WiiIntent Wii
+XboxIntent Play Xbox
+XboxIntent Xbox
