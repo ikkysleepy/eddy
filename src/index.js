@@ -1,11 +1,11 @@
 'use strict';
 // User Data
-var data = {}; // Replace with JSON From https://eddy.tinyelectrons.com/index.php/users/alexa/
+var data = {};
 
 /**
  * App ID for the skill
  */
-var APP_ID =  "amzn1.echo-sdk-ams.app.[Your APP ID GOES HERE]";
+var APP_ID =  "amzn1.echo-sdk-ams.app.[APP_ID]";
 
 /**
  * The AlexaSkill prototype and helper functions
@@ -40,8 +40,8 @@ Eddy.prototype.eventHandlers.onSessionStarted = function (sessionStartedRequest,
 
 Eddy.prototype.eventHandlers.onLaunch = function (launchRequest, session, response) {
     console.log("Eddy onLaunch requestId: " + launchRequest.requestId + ", sessionId: " + session.sessionId);
-    var speechOutput = "Welcome to Eddy, your Home IR Remote Companion";
-    var repromptText = "You can say, tell Eddy to Watch TV";
+    var speechOutput = "Welcome to Eddy, your Home IR Remote Companion.";
+    var repromptText = "You can say, ask Eddy What are my Activities or Watch TV. What do you you want to do?";
     response.ask(speechOutput, repromptText);
 };
 
@@ -53,6 +53,7 @@ Eddy.prototype.eventHandlers.onSessionEnded = function (sessionEndedRequest, ses
 
 Eddy.prototype.intentHandlers = {
     // register custom intent handlers
+    "ActivitiesIntent": function (intent, session, response) {activities(intent, session, response);return false;},
     "WatchTVIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
     "WatchMovieIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
     "ListenMusicIntnet": function (intent, session, response) {sendIR(intent, session, response);return false;},
@@ -79,7 +80,7 @@ Eddy.prototype.intentHandlers = {
     "BluerayOnToggleIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
     "TVOffIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
     "AudioOffIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
-    "TivoOffToggleIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
+    "WatchMyShowIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
     "DVROffToggleIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
     "DVDOffToggleIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
     "BluerayOffToggleIntent": function (intent, session, response) {sendIR(intent, session, response);return false;},
@@ -101,43 +102,88 @@ Eddy.prototype.intentHandlers = {
     }
 };
 
-// send IR Helper
-function sendIR(intent, session, response){
-    var intent_name = intent.name;
-    var signals = data.activities[intent_name];
-    var error = data.activities.error[intent_name];
+// Activities
+function activities(intent, session, response) {
+    var list = data.activities;
 
-    var max = 0;
-    for (var k in signals) {
-        if (signals.hasOwnProperty(k)) {
-            ++max;
+    console.log(list);
+    console.log(data.activities);
+
+    var size = 0;
+    var myActivities;
+    for (var k in list) {
+        if (k !== 'error') {
+            var error = data.activities.error[k];
+            if(myActivities) {
+                myActivities = myActivities + ", " + error['title'];
+            }else{
+                myActivities = error['title'];
+            }
+            size++;
         }
     }
 
-    // Create Commands
-    var cmds = [];
-    for(var i=0; i< max; i++){
-        var cmd = signals[i][0];
-        var delay = signals[i][1];
-        cmds.push(cmd + '\r',delay);
+    if(size == 0) {
+        response.tell("No Activities Found. Please Add Activites on eddy.tinyelectrons.com");
+    }else{
+        if(size == 1){
+            var speechOutput = "Your Activity is: " + myActivities;
+            var repromptText = "What Activity do you want to do?";
+            response.ask(speechOutput, repromptText);
+        }else{
+            var speechOutput = "Your Activities are: " + myActivities;
+            var repromptText = "What Activity do you want to do?";
+            response.ask(speechOutput, repromptText);
+
+        }
     }
 
-    var accessToken = session.accessToken;
-    accessToken = true;
-    if (accessToken === null) {
-        response.linkAccount().shouldEndSession(true).say('Your Eddy account is not linked. Please use the Alexa App to link the account.');
-        return true;
-    } else {
+}
+// send IR Helper
+function sendIR(intent, session, response){
+    var intent_name = intent.name;
 
-        var sendIR = itach.send(cmds, function (err, res) {
-            if (err) {
-                var msg = "Could not send signals to "+ error["title"] + "\nSignal: " + error["count"];
-                response.tellWithCard("Error", msg, error["title"]);
-            } else {
-                response.tellWithCard("OK", "Eddy", error["title"]);
+    if (typeof data.activities[intent_name] != "undefined") {
+
+        var signals = data.activities[intent_name];
+        var error = data.activities.error[intent_name];
+
+        var max = 0;
+        for (var k in signals) {
+            if (signals.hasOwnProperty(k)) {
+                ++max;
             }
-        });
+        }
 
+        // Create Commands
+        var cmds = [];
+        for (var i = 0; i < max; i++) {
+            var cmd = signals[i][0];
+            var delay = signals[i][1];
+            cmds.push(cmd + '\r', delay);
+        }
+
+        var accessToken = session.accessToken;
+        accessToken = true;
+        if (accessToken === null) {
+            response.linkAccount().shouldEndSession(true).say('Your Eddy account is not linked. Please use the Alexa App to link the account.');
+            return true;
+        } else {
+
+            var sendIR = itach.send(cmds, function (err, res) {
+                if (err) {
+                    var msg = "Could not send signals to " + error["title"] + "\nSignal: " + error["count"];
+                    response.tellWithCard("Error", msg, error["title"]);
+                } else {
+                    response.tellWithCard("OK", "Eddy", error["title"]);
+                }
+            });
+
+        }
+    }else{
+        var speechOutput = "Activity is not set.";
+        var repromptText = "You can say, ask Eddy What are my Activities or Watch TV. What do you you want to do?";
+        response.ask(speechOutput, repromptText);
     }
 
 }

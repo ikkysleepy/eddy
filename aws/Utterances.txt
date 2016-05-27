@@ -1,14 +1,21 @@
+ActivitiesIntent What are my Activities
+ActivitiesIntent List Activities
+ActivitiesIntent My Activities
+ActivitiesIntent Activities
 AllOffIntent All Off
 AllOffIntent GoodNight
 AllOffIntent Off
+AllOffIntent Power All Off
 AppleTVIntent Apple TV
 AppleTVIntent Watch Apple TV
+AudioOffIntent Power Off Audio
 AudioOffIntent Audio Off
 AudioOffIntent Turn Off Audio
 AudioOnIntent Audio On
 AudioOnIntent Turn On Audio
 BedIntent Bed
 BedIntent Go to Bed
+BluerayOffToggleIntent Power Off Blueray
 BluerayOffToggleIntent Blueray Off
 BluerayOffToggleIntent Turn Off Blueray
 BluerayOnToggleIntent Blueray On
@@ -20,11 +27,13 @@ DecreaseVolumeIntent Lower It Down
 DecreaseVolumeIntent Turn It down
 DVDIntent DVD
 DVDIntent Watch a DVD
+DVDOffToggleIntent Power Off DVD
 DVDOffToggleIntent DVD Off
 DVDOffToggleIntent Turn Off DVD
 DVDOnToggleIntent DVD On
 DVDOnToggleIntent Turn On DVD
-DVROffToggleIntent DVD Off
+DVROffToggleIntent Power Off DVR
+DVROffToggleIntent DVR Off
 DVROffToggleIntent Turn Off DVR
 DVROnToggleIntent DVR On
 DVROnToggleIntent Turn On DVR
@@ -66,10 +75,9 @@ RokuIntent Watch Roku
 SkipIntent Skip
 SonosIntent Listen to Sonos
 SonosIntent Sonos
-TivoOffToggleIntent Tivo Off
-TivoOffToggleIntent Turn Off Tivo
 TivoOnToggleIntent Tivo On
 TivoOnToggleIntent Turn On Tivo
+TVOffIntent Power Off TV
 TVOffIntent Turn Off TV
 TVOffIntent TV off
 TVOnIntent Turn On TV
@@ -80,6 +88,8 @@ WatchMovieIntent Watch a Movie
 WatchTVIntent TV
 WatchTVIntent Watch the Tube
 WatchTVIntent Watch TV
+WatchMyShowIntent Watch My Show
+WatchMyShowIntent My Show
 WiiIntent Play Wii
 WiiIntent Wii
 XboxIntent Play Xbox
