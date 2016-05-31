@@ -94,3 +94,12 @@ WiiIntent Play Wii
 WiiIntent Wii
 XboxIntent Play Xbox
 XboxIntent Xbox
+LinkIntent Link My Account
+LinkIntent Link Account with {pin}
+LinkIntent Account Link {pin}
+LinkIntent Link {pin}
+RemoveLinkIntent Remove Link
+RemoveLinkIntent Link Remove
+RemoveLinkIntent Remove Account
+RemoveLinkIntent Unlink Account
+PinIntent Pin {pin}

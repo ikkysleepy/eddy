@@ -1,7 +1,9 @@
 {
   "intents": [
+    {"intent": "ActivitiesIntent"},
     {"intent": "WatchTVIntent"},
     {"intent": "WatchMovieIntent"},
+    {"intent": "WatchMyShowIntent"},
     {"intent": "ListenMusicIntnet"},
     {"intent": "NetflixIntent"},
     {"intent": "BedIntent"},
@@ -26,7 +28,6 @@
     {"intent": "BluerayOnToggleIntent"},
     {"intent": "TVOffIntent"},
     {"intent": "AudioOffIntent"},
-    {"intent": "TivoOffToggleIntent"},
     {"intent": "DVROffToggleIntent"},
     {"intent": "DVDOffToggleIntent"},
     {"intent": "BluerayOffToggleIntent"},
@@ -42,6 +43,11 @@
     {"intent": "FastForwardIntent"},
     {"intent": "RewindIntent"},
     {"intent": "NextIntent"},
-    {"intent": "SkipIntent"}
+    {"intent": "SkipIntent"},
+    {"intent": "RemoveLinkIntent"},
+    {"intent": "AMAZON.YesIntent"},
+    {"intent": "AMAZON.NoIntent"},
+    {"intent": "LinkIntent","slots": [{"name": "pin","type": "AMAZON.NUMBER"}]},
+    {"intent": "PinIntent","slots": [{"name": "pin","type": "AMAZON.NUMBER"}]}
   ]
 }

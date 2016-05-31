@@ -90,7 +90,7 @@ function onSessionStarted(sessionStartedRequest, session) {
 function onLaunch(userData, launchRequest, session, context) {
     if(debug) console.log("Eddy onLaunch requestId: " + launchRequest.requestId + ", sessionId: " + session.sessionId);
     var speechOutput = "Welcome to Eddy, your Home IR Remote Companion.";
-    var repromptText = "You can say, ask Eddy What are my Activities or Watch TV. What do you you want to do?";
+    var repromptText = "You can say, ask Eddy What are my Activities. What do you you want to do?";
     response.ask(speechOutput, repromptText);
 }
 
@@ -339,7 +339,7 @@ function handleLinkAccount(userData, intentRequest, session, context){
                 if (typeof jsonResponse.url != "undefined") {
 
                     speechOutput = "Account Linked.";
-                    repromptText = "You can say, What are my Activities or Watch TV. What do you you want to do?";
+                    repromptText = "You can say, What are my Activities. What do you you want to do?";
                     var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
 
                     // Save User Data
@@ -349,6 +349,7 @@ function handleLinkAccount(userData, intentRequest, session, context){
                     saveAndExit(userData, context, response);
                 }else{
                     speechOutput = "Failed to Link Account";
+                    repromptText = "Please say your Account Pin Again";
                     var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
                     context.succeed(response)
                 }
@@ -358,6 +359,7 @@ function handleLinkAccount(userData, intentRequest, session, context){
                 if (debug) console.log('error');
                 if (debug) console.log(error);
                 speechOutput = "Failed to Link Account";
+                repromptText = "Please say your Account Pin Again";
                 var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
                 context.succeed(response);
 
@@ -523,7 +525,7 @@ function handleSendIR(userData, intentRequest, session, context){
             }
         } else {
             speechOutput = "Activity is not set.";
-            repromptText = "You can say, ask Eddy What are my Activities or Watch TV. What do you you want to do?";
+            repromptText = "You can say, ask Eddy What are my Activities. What do you you want to do?";
             cardText = speechOutput + 'To Set Activity go to Eddy\'s companion website';
             var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
             context.succeed(response);
