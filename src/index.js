@@ -1,9 +1,15 @@
 'use strict';
 /**
  * Eddy Skill for Alexa
- *
+ * v 0.2
  * Author: Jorge Corona
  * Version: 0.1 (March 30, 2016)
+ * Initial Release
+ *
+ * Version: 0.2 (June 6, 2016)
+ * Fixed Launch
+ * Fixed Missing Intent (WatchMyShowIntent)
+ * Added Response to bad Intents
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
@@ -12,13 +18,8 @@
 //               User Config                //
 // **************************************** //
 
-/**
- * App ID for the skill
- */
-var APP_ID =  "amzn1.echo-sdk-ams.app.[APP_ID]";
-
 // ******************************************************************************** //
-//                           Eddy Skill Functions                                   //
+//                           My Remote Skill Functions                                   //
 // ******************************************************************************** //
 
 // **************************************** //
@@ -29,7 +30,7 @@ var APP_ID =  "amzn1.echo-sdk-ams.app.[APP_ID]";
  * The AlexaSkill prototype and helper functions
  */
 var AlexaSkill = require('./AlexaSkill');
-var debug = false;
+var debug = true;
 
 /**
  * The iTach Module
@@ -50,7 +51,7 @@ var tableName = 'eddy';
 var request = require('request');
 
 // Intents & Eddy Data Json
-var intents = ["WatchTVIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
+var intents = ["WatchTVIntent","WatchMyShowIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
 var eddyData = {};
 
 // **************************************** //
@@ -66,7 +67,6 @@ exports.handler = function(event, context) {
         if (event.session.new) {onSessionStarted({requestId: event.request.requestId}, event.session);}
         getUserData(event, context, onUserDataLoad);
 
-
     } catch (e) {
         context.fail("Exception: " + e);
     }
@@ -79,44 +79,6 @@ function onSessionStarted(sessionStartedRequest, session) {
     if(debug) console.log("onSessionStarted requestId=" + sessionStartedRequest.requestId +
         ", sessionId=" + session.sessionId);
 }
-
-/**
- * on Launch
- * @param userData
- * @param launchRequest
- * @param session
- * @param context
- */
-function onLaunch(userData, launchRequest, session, context) {
-    if(debug) console.log("Eddy onLaunch requestId: " + launchRequest.requestId + ", sessionId: " + session.sessionId);
-    var speechOutput = "Welcome to Eddy, your Home IR Remote Companion.";
-    var repromptText = "You can say, ask Eddy What are my Activities. What do you you want to do?";
-    response.ask(speechOutput, repromptText);
-}
-
-/**
- * Called when the user ends the session.
- * Is not called when the skill returns shouldEndSession=true.
- */
-function onSessionEnded(sessionEndedRequest, session) {
-    if(debug) console.log("onSessionEnded requestId=" + sessionEndedRequest.requestId +
-        ", sessionId=" + session.sessionId);
-    // Add cleanup logic here
-}
-
-/**
- *  Called when ending Skill
- * @param callback
- */
-function handleSessionEndRequest(callback) {
-    var cardTitle = "Session Ended";
-    var speechOutput = "Thank you for trying Eddy. Have a nice day!";
-    // Setting this to true ends the session and exits the skill.
-    var shouldEndSession = true;
-
-    callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession, {}));
-}
-
 /**
  *  Build Speech Response
  * @param title
@@ -153,6 +115,48 @@ function buildSpeechletResponse(title, cardText, output, repromptText, shouldEnd
 }
 
 /**
+ * on Launch
+ * @param userData
+ * @param launchRequest
+ * @param session
+ * @param context
+ */
+function onLaunch(userData, launchRequest, session, context) {
+    if(debug) console.log("My Remote onLaunch requestId: " + launchRequest.requestId + ", sessionId: " + session.sessionId);
+    var cardTitle = 'Welcome';
+    var cardText = 'Welcome to My Remote';
+    var sessionAttributes = {};
+    var shouldEndSession = false;
+    var speechOutput = "Welcome to My Remote, your Home IR Remote Companion.";
+    var repromptText = "You can say, ask My Remote What are my Activities. What do you you want to do?";
+    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
+    context.succeed(response);
+}
+
+/**
+ * Called when the user ends the session.
+ * Is not called when the skill returns shouldEndSession=true.
+ */
+function onSessionEnded(sessionEndedRequest, session) {
+    if(debug) console.log("onSessionEnded requestId=" + sessionEndedRequest.requestId +
+        ", sessionId=" + session.sessionId);
+    // Add cleanup logic here
+}
+
+/**
+ *  Called when ending Skill
+ * @param callback
+ */
+function handleSessionEndRequest(callback) {
+    var cardTitle = "Session Ended";
+    var speechOutput = "Thank you for trying My Remote. Have a nice day!";
+    // Setting this to true ends the session and exits the skill.
+    var shouldEndSession = true;
+
+    callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession, {}));
+}
+
+/**
  * Called when the user specifies an intent for this skill.
  */
 function onIntent(userData, intentRequest, session, context) {
@@ -160,7 +164,7 @@ function onIntent(userData, intentRequest, session, context) {
         ", sessionId=" + session.sessionId);
 
     var intentName = intentRequest.intent.name;
-    var inArray = intents.indexOf(intentName) > -1 ? true:false;
+    var inArray = intents.indexOf(intentName) > -1;
     if(debug) console.log(inArray);
     if(debug) console.log(intentName);
 
@@ -180,7 +184,14 @@ function onIntent(userData, intentRequest, session, context) {
     } else if (inArray) {
         handleSendIR(userData, intentRequest, session, context);
     } else {
-        throw "Invalid intent";
+        var cardTitle = 'Bad Intent';
+        var cardText = 'Bad Intent';
+        var sessionAttributes = {};
+        var shouldEndSession = false;
+        var speechOutput = "";
+        var repromptText = "That Intent was not found.";
+        var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
+        context.succeed(response);
     }
 }
 
@@ -214,7 +225,7 @@ function handleRemoveLink(userData, intentRequest, session, context){
         context.succeed(response);
     }else{
         var cardTitle = 'Account is not Linked';
-        var cardText = 'Alexa is not linked with Eddy';
+        var cardText = 'Alexa is not linked with My Remote';
         var sessionAttributes = {};
         var shouldEndSession = true;
         var speechOutput = "Account is not Linked";
@@ -233,7 +244,7 @@ function handleRemoveLink(userData, intentRequest, session, context){
  */
 function handleYesRemoveLink(userData, intentRequest, session, context){
     var cardTitle = 'Removed Account Link';
-    var cardText = 'Alexa is no longer linked with Eddy';
+    var cardText = 'Alexa is no longer linked with My Remote';
     var sessionAttributes = {};
     var shouldEndSession = false;
     var speechOutput = "Removed Account Link.";
@@ -250,11 +261,11 @@ function handleYesRemoveLink(userData, intentRequest, session, context){
  * @param context
  */
 function handleNoRemoveLink(userData, intentRequest, session, context){
-    var cardTitle = 'Eddy Loves You';
-    var cardText = 'Eddy is still linked with Alexa';
+    var cardTitle = 'My Remote Loves You';
+    var cardText = 'My Remote is still linked with Alexa';
     var sessionAttributes = {};
     var shouldEndSession = true;
-    var speechOutput = "Account is still linked with Eddy";
+    var speechOutput = "Account is still linked with My Remote";
     var repromptText = "";
     var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
     context.succeed(response);
@@ -276,7 +287,7 @@ function handleLink(userData, intentRequest, session, context){
         // Check if Account is linked
         if (url.length > 0) {
             var cardTitle = 'Account Already Linked';
-            var cardText = 'Alexa is already linked with Eddy';
+            var cardText = 'Alexa is already linked with My Remote';
             var sessionAttributes = {};
             var shouldEndSession = false;
             var speechOutput = "Your Account is already linked";
@@ -320,7 +331,7 @@ function handlePin(userData, intentRequest, session, context) {
  */
 function handleLinkAccount(userData, intentRequest, session, context){
     var cardTitle = 'Account Linked';
-    var cardText = 'Alexa is now linked with Eddy';
+    var cardText = 'Alexa is now linked with My Remote';
     var sessionAttributes = {};
     var shouldEndSession = false;
     var speechOutput = "";
@@ -378,12 +389,12 @@ function handleLinkAccount(userData, intentRequest, session, context){
  */
 function handleNoSlotDialogRequest(userData, intentRequest, session, context) {
     var pin = intentRequest.intent.slots.pin.value;
-    
+
     // Check Pin
     if (!pin) {
         // No Pin Slot
         var cardTitle = 'Account Pin';
-        var cardText = 'Please say your Account Pin, found in Eddy\'s Companion website';
+        var cardText = 'Please say your Account Pin, found in My Remote\'s Companion website';
         var sessionAttributes = {'pinAsked':true};
         var shouldEndSession = false;
         var repromptText = "Please say your Account Pin.";
@@ -505,7 +516,7 @@ function handleSendIR(userData, intentRequest, session, context){
             var accessToken = session.accessToken;
             accessToken = true;
             if (accessToken === null) {
-                response.linkAccount().shouldEndSession(true).say('Your Eddy account is not linked. Please use the Alexa App to link the account.');
+                response.linkAccount().shouldEndSession(true).say('Your My Remote account is not linked. Please use the Alexa App to link the account.');
                 return true;
             } else {
 
@@ -525,8 +536,8 @@ function handleSendIR(userData, intentRequest, session, context){
             }
         } else {
             speechOutput = "Activity is not set.";
-            repromptText = "You can say, ask Eddy What are my Activities. What do you you want to do?";
-            cardText = speechOutput + 'To Set Activity go to Eddy\'s companion website';
+            repromptText = "You can say, ask My Remote What are my Activities. What do you you want to do?";
+            cardText = speechOutput + 'To Set Activity go to My Remote\'s companion website';
             var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
             context.succeed(response);
         }
@@ -566,60 +577,6 @@ function onUserDataLoad(event, context, userData) {
     }
 }
 
-/**
- *  Get User Data
- * @param event
- * @param context
- * @param callback
- */
-function getUserData(event, context, callback) {
-    // Check if the user ID has an entry on DB. If not, need to create new one.
-    // If exists, start a new barbecue.
-    if(debug) console.log('Get User Data = ' + event.session.user.userId);
-
-    var params = {
-        TableName: tableName,
-        Key: {
-            userId: event.session.user.userId
-        }
-    };
-    dynamo.getItem(params, function(err, data) {
-        if (err) {
-            if(debug) console.log('Error GET Handler: ' + err);
-            context.fail("Exception: " + err);
-        } else {
-            if(debug) console.log('Got User Data' + JSON.stringify(data));
-            if (!data.Item) {
-                if(debug) console.log('New User, creating data');
-                data = {
-                    Item: {
-                        userId: event.session.user.userId
-                    }
-                }
-                callback(event, context, data);
-            } else {
-                if(debug) console.log('Existing User');
-
-                if (typeof data.Item.url != "undefined") {
-                    var url = data.Item.url;
-
-                    request(url, function (error, response, body) {
-                        if (!error && response.statusCode == 200) {
-                            // Set Eddy Data
-                            eddyData = JSON.parse(body);
-                            itach = new Itach(eddyData.user.host,eddyData.user.port);
-
-                            // Return Data
-                            data.Item.eddyData = eddyData;
-                            callback(event, context, data);
-                        }
-                    });
-                }
-            }
-
-        }
-    });
-}
 
 /**
  *  Save User Data
@@ -628,7 +585,7 @@ function getUserData(event, context, callback) {
  * @param response
  */
 function saveAndExit(userData, context, response) {
-    if(debug) console.log('Saving: ' + JSON.stringify(userData));
+    if(debug) console.log('Saving: ');
     var params = {
         TableName: tableName,
         Item: userData.Item
@@ -652,20 +609,90 @@ function saveAndExit(userData, context, response) {
  * @param response
  */
 function unlinkAccount(userData, context, response) {
-    delete  userData.Item.url;
-    if(debug) console.log('removing link: ' + JSON.stringify(userData));
+    if(debug) console.log('removing link: ');
     var params = {
         TableName: tableName,
-        Item: userData.Item
+        Key: {
+            userId: userData.Item.userId
+        }
     };
 
-    if(debug) console.log('Saving: ' + JSON.stringify(params));
-    dynamo.putItem(params, function(err, data) {
+    if(debug) console.log('Saving: ');
+    dynamo.deleteItem(params, function(err, data) {
         if (err) {
             if(debug) console.log('Error Save Handler: ' + err);
             context.fail("Exception: " + err);
         } else {
             context.succeed(response);
+        }
+    });
+}
+
+
+/**
+ *  Get User Data
+ * @param event
+ * @param context
+ * @param callback
+ */
+function getUserData(event, context, callback) {
+    // Check if the user ID has an entry on DB. If not, need to create new one.
+    // If exists, start a new barbecue.
+    if(debug) console.log('Get User Data = ' + event.session.user.userId);
+
+    var params = {
+        TableName: tableName,
+        Key: {
+            userId: event.session.user.userId
+        }
+    };
+    dynamo.getItem(params, function(err, data) {
+        if (err) {
+            if(debug) console.log('Error GET Handler: ' + err);
+            context.fail("Exception: " + err);
+        } else {
+            if(debug) console.log('Got User Data');
+            if (!data.Item) {
+                if(debug) console.log('New User, creating data');
+                data = {
+                    Item: {
+                        userId: event.session.user.userId
+                    }
+                };
+                callback(event, context, data);
+            } else {
+                if(debug) console.log('Existing User');
+
+                if (typeof data.Item.url != "undefined") {
+                    var url = data.Item.url;
+
+                    request(url, function (error, response, body) {
+                        if (!error && response.statusCode == 200) {
+
+                            var myResponse = JSON.parse(body);
+                            if(myResponse.success == false){
+                                var cardTitle = 'Accounted Removed';
+                                var cardText = 'My Account was removed from the website';
+                                var repromptText = "";
+                                var sessionAttributes = {};
+                                var shouldEndSession = true;
+                                var speechOutput = "My Account was removed from the website";
+                                var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
+                                unlinkAccount({Item: {userId: event.session.user.userId}}, context, response);
+                            }else {
+                                // Set Eddy Data
+                                eddyData = myResponse;
+                                itach = new Itach(eddyData.user.host, eddyData.user.port);
+
+                                // Return Data
+                                data.Item.eddyData = eddyData;
+                                callback(event, context, data);
+                            }
+                        }
+                    });
+                }
+            }
+
         }
     });
 }
