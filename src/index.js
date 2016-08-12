@@ -1,72 +1,91 @@
 'use strict';
+
+// ******************************************************************************** //
+//                            Eddy (Voice Remote) Skill                             //
+// ******************************************************************************** //
 /**
- * Eddy Skill for Alexa
- * v 0.2
- * Author: Jorge Corona
- * Version: 0.1 (March 30, 2016)
- * Initial Release
- *
- * Version: 0.2 (June 6, 2016)
- * Fixed Launch
- * Fixed Missing Intent (WatchMyShowIntent)
- * Added Response to bad Intents
+ * Eddy (Voice Remote) Skill for Amazon Alexa
+ * v 0.6 - August 12, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
+ * v 0.6 Repeat Max of 10, Adjusted shouldEndSession
+ * v 0.5 Added Device Intent
+ * v 0.4 Re-created script, fixed issue with accessToken
+ * v 0.3 Fixed HTTPS Issue
+ * v 0.2 Added STOP / Cancel
+ *
+ *
+ * Test
+ * -------------
+ * open voice remote + help                                         => prompt for activity "What do you want to do?"
+ * open voice remote                                                => prompt "You can say, ask Voice Remote What are my Activities. What do you you want to do?"
+ * tell voice remote to Open Blue Ray                               => Null
+ * tell voice remote to Watch TV                                    => Watch TV
+ * tell voice remote to Press the Volume UP on my Sony 3 times      => Press Volume up on Sony 3 times
+ * tell voice remote to Press the Volume UP on my Soundbar 3 times  => Press Volume up on TV 3 times
+ *
  */
-// **************************************** //
-//               User Config                //
-// **************************************** //
-
 // ******************************************************************************** //
-//                           My Remote Skill Functions                                   //
-// ******************************************************************************** //
 
 // **************************************** //
-//                  Vars                    //
+//             Libraries                    //
 // **************************************** //
 
-/**
- * The AlexaSkill prototype and helper functions
- */
-var AlexaSkill = require('./AlexaSkill');
-var debug = true;
-
-/**
- * The iTach Module
- */
+/*  Global Cache */
 var Itach = require('./SimpleItach');
-var itach;
 
-/**
- *  Dyamodb
- */
-var doc = require('dynamodb-doc');
-var dynamo = new doc.DynamoDB();
-var tableName = 'eddy';
-
-/**
- *  Request HTTP
- */
+/*  Request HTTP */
 var request = require('request');
 
-// Intents & Eddy Data Json
+// **************************************** //
+//             Variables                    //
+// **************************************** //
+
+// Intents & Skill Info
 var intents = ["WatchTVIntent","WatchMyShowIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
-var eddyData = {};
+var SKILL_ID = "amzn1.echo-sdk-ams.app.194b7d6a-18e3-4c94-b4c9-6d921bd21a6d";
+var TOKEN_URL = 'https://eddy.tinyelectrons.com/index.php/alexa/config?token=';
 
-// **************************************** //
-//                  Alexa                   //
-// **************************************** //
+// ******************************************************************************** //
+//                                      Core                                        //
+// ******************************************************************************** //
 
-// Create the handler that responds to the Alexa Request.
-exports.handler = function(event, context) {
+// Route the incoming request based on type (LaunchRequest, IntentRequest,
+// etc.) The JSON body of the request is provided in the event parameter.
+exports.handler = function (event, context) {
     try {
-        if(debug) console.log("event.session.application.applicationId=" + event.session.application.applicationId);
-        if(debug) console.log('Calling App');
+        console.log("event.session.application.applicationId=" + event.session.application.applicationId);
 
-        if (event.session.new) {onSessionStarted({requestId: event.request.requestId}, event.session);}
-        getUserData(event, context, onUserDataLoad);
+        /**
+         * Uncomment this if statement and populate with your skill's application ID to
+         * prevent someone else from configuring a skill that sends requests to this function.
+         */
 
+        if (event.session.application.applicationId !== SKILL_ID) {
+            context.fail("Invalid Application ID");
+        }
+
+        if (event.session.new) {
+            onSessionStarted({requestId: event.request.requestId}, event.session);
+        }
+
+        if (event.request.type === "LaunchRequest") {
+            onLaunch(event.request,
+                event.session,
+                function callback(sessionAttributes, speechletResponse) {
+                    context.succeed(buildResponse(sessionAttributes, speechletResponse));
+                });
+        } else if (event.request.type === "IntentRequest") {
+            onIntent(event.request,
+                event.session,
+                function callback(sessionAttributes, speechletResponse) {
+                    context.succeed(buildResponse(sessionAttributes, speechletResponse));
+                });
+        } else if (event.request.type === "SessionEndedRequest") {
+            onSessionEnded(event.request, event.session);
+            context.succeed();
+        }
     } catch (e) {
         context.fail("Exception: " + e);
     }
@@ -76,61 +95,46 @@ exports.handler = function(event, context) {
  * Called when the session starts.
  */
 function onSessionStarted(sessionStartedRequest, session) {
-    if(debug) console.log("onSessionStarted requestId=" + sessionStartedRequest.requestId +
-        ", sessionId=" + session.sessionId);
-}
-/**
- *  Build Speech Response
- * @param title
- * @param cardText
- * @param output
- * @param repromptText
- * @param shouldEndSession
- * @param attributes
- * @returns {{version: string, sessionAttributes: *, response: {outputSpeech: {type: string, text: *}, card: {type: string, title: *, text: *}, reprompt: {outputSpeech: {type: string, text: *}}, shouldEndSession: *}}}
- */
-function buildSpeechletResponse(title, cardText, output, repromptText, shouldEndSession, attributes) {
-    return {
-        version: "1.0",
-        sessionAttributes: attributes,
-        response: {
-            outputSpeech: {
-                type: "PlainText",
-                text: output
-            },
-            card: {
-                type: "Simple",
-                title: title,
-                text: cardText
-            },
-            reprompt: {
-                outputSpeech: {
-                    type: "PlainText",
-                    text: repromptText
-                }
-            },
-            shouldEndSession: shouldEndSession
-        }
-    };
+    console.log("onSessionStarted requestId=" + sessionStartedRequest.requestId + ", sessionId=" + session.sessionId);
+
+    // add any session init logic here
 }
 
 /**
- * on Launch
- * @param userData
- * @param launchRequest
- * @param session
- * @param context
+ * Called when the user invokes the skill without specifying what they want.
  */
-function onLaunch(userData, launchRequest, session, context) {
-    if(debug) console.log("My Remote onLaunch requestId: " + launchRequest.requestId + ", sessionId: " + session.sessionId);
-    var cardTitle = 'Welcome';
-    var cardText = 'Welcome to My Remote';
-    var sessionAttributes = {};
-    var shouldEndSession = false;
-    var speechOutput = "Welcome to My Remote, your Home IR Remote Companion.";
-    var repromptText = "You can say, ask My Remote What are my Activities. What do you you want to do?";
-    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-    context.succeed(response);
+function onLaunch(launchRequest, session, callback) {
+    console.log("onLaunch requestId=" + launchRequest.requestId + ", sessionId=" + session.sessionId);
+
+    getWelcomeResponse(callback);
+}
+
+/**
+ * Called when the user specifies an intent for this skill.
+ */
+function onIntent(intentRequest, session, callback) {
+    console.log("onIntent requestId=" + intentRequest.requestId + ", sessionId=" + session.sessionId);
+
+    var intent = intentRequest.intent,
+        intentName = intentRequest.intent.name,
+        inArray = intents.indexOf(intentName) > -1;
+
+    // dispatch custom intents to handlers here
+    if ("ActivitiesIntent" === intentName) {
+        handleActivitiesList(intent, session, callback);
+    }else if ("AMAZON.HelpIntent" === intentName) {
+        handleGetHelpRequest(intent, session, callback);
+    }else if ("AMAZON.StopIntent" === intentName) {
+        handleFinishSessionRequest(intent, session, callback);
+    }else if ("AMAZON.CancelIntent" === intentName) {
+        handleFinishSessionRequest(intent, session, callback);
+    }else if ("DeviceIntent" === intentName) {
+        handleButtonPress(intent, session, callback);
+    }else if (inArray) {
+        handleActivity(intent, session, callback);
+    }else {
+        handleFinishSessionRequest(intent, session, callback);
+    }
 }
 
 /**
@@ -138,561 +142,583 @@ function onLaunch(userData, launchRequest, session, context) {
  * Is not called when the skill returns shouldEndSession=true.
  */
 function onSessionEnded(sessionEndedRequest, session) {
-    if(debug) console.log("onSessionEnded requestId=" + sessionEndedRequest.requestId +
-        ", sessionId=" + session.sessionId);
-    // Add cleanup logic here
+    console.log("onSessionEnded requestId=" + sessionEndedRequest.requestId + ", sessionId=" + session.sessionId);
 }
 
+// ******************************************************************************** //
+//                             Skill specific business logic                        //
+// ******************************************************************************** //
+
 /**
- *  Called when ending Skill
+ * Welcome Response
+ *
  * @param callback
  */
-function handleSessionEndRequest(callback) {
-    var cardTitle = "Session Ended";
-    var speechOutput = "Thank you for trying My Remote. Have a nice day!";
-    // Setting this to true ends the session and exits the skill.
-    var shouldEndSession = true;
-
-    callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession, {}));
-}
-
-/**
- * Called when the user specifies an intent for this skill.
- */
-function onIntent(userData, intentRequest, session, context) {
-    if(debug) console.log("onIntent requestId=" + intentRequest.requestId +
-        ", sessionId=" + session.sessionId);
-
-    var intentName = intentRequest.intent.name;
-    var inArray = intents.indexOf(intentName) > -1;
-    if(debug) console.log(inArray);
-    if(debug) console.log(intentName);
-
-    // Dispatch to your skill's intent handlers
-    if ("ActivitiesIntent" === intentName) {
-        handleActivities(userData,intentRequest, session, context);
-    } else if ("LinkIntent" === intentName) {
-        handleLink(userData, intentRequest, session, context);
-    } else if ("RemoveLinkIntent" === intentName) {
-        handleRemoveLink(userData, intentRequest, session, context);
-    } else if ("AMAZON.YesIntent" === intentName) {
-        handleYesRemoveLink(userData, intentRequest, session, context);
-    }else if ("AMAZON.NoIntent" === intentName) {
-        handleNoRemoveLink(userData, intentRequest, session, context);
-    }else if ("PinIntent" === intentName) {
-        handlePin(userData, intentRequest, session, context);
-    } else if (inArray) {
-        handleSendIR(userData, intentRequest, session, context);
-    } else {
-        var cardTitle = 'Bad Intent';
-        var cardText = 'Bad Intent';
-        var sessionAttributes = {};
-        var shouldEndSession = false;
-        var speechOutput = "";
-        var repromptText = "That Intent was not found.";
-        var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-        context.succeed(response);
-    }
-}
-
-// **************************************** //
-//                  Intents                //
-// **************************************** //
-
-/**
- *  Verify Remove Link
- * @param userData
- * @param intentRequest
- * @param session
- * @param context
- */
-function handleRemoveLink(userData, intentRequest, session, context){
-
-    var url = '';
-    if (typeof userData.Item.url != "undefined") {
-        url  = userData.Item.url;
-    }
-
-    // Check if account is still linked
-    if(url.length > 0) {
-        var cardTitle = 'Verify Removal of Linked Account';
-        var cardText = 'Are you sure you wish to Unlink Account?';
-        var sessionAttributes = {};
-        var shouldEndSession = false;
-        var speechOutput = "";
-        var repromptText = "Are you sure you wish to Unlink Account? Yes or No";
-        var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-        context.succeed(response);
-    }else{
-        var cardTitle = 'Account is not Linked';
-        var cardText = 'Alexa is not linked with My Remote';
-        var sessionAttributes = {};
-        var shouldEndSession = true;
-        var speechOutput = "Account is not Linked";
-        var repromptText = "";
-        var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-        context.succeed(response);
-    }
-}
-
-/**
- *  Yes, Remove Account Link
- * @param userData
- * @param intentRequest
- * @param session
- * @param context
- */
-function handleYesRemoveLink(userData, intentRequest, session, context){
-    var cardTitle = 'Removed Account Link';
-    var cardText = 'Alexa is no longer linked with My Remote';
+function getWelcomeResponse(callback) {
     var sessionAttributes = {};
+    var cardTitle = 'Welcome';
     var shouldEndSession = false;
-    var speechOutput = "Removed Account Link.";
-    var repromptText = "You can Re-Link account by saying Link Account. What do you want to do?";
-    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-    unlinkAccount(userData, context, response);
+    var speechOutput = "Welcome to Voice Remote, your Home IR Remote Companion.";
+    var repromptText = "You can say, ask Voice Remote What are my Activities  or tell Voice Remote to Press the Power button on my TV. What do you you want to do?";
+
+    sessionAttributes = {
+        "speechOutput": speechOutput,
+        "repromptText": repromptText
+    };
+
+    callback(sessionAttributes, buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
 }
 
-/**
- *  No, Do Not Remove Link
- * @param userData
- * @param intentRequest
+/** 
+ * Activity List
+ * 
+ * @param intent
  * @param session
- * @param context
+ * @param callback
  */
-function handleNoRemoveLink(userData, intentRequest, session, context){
-    var cardTitle = 'My Remote Loves You';
-    var cardText = 'My Remote is still linked with Alexa';
+function handleActivitiesList(intent, session, callback) {
+    var repromptText = "" ;
     var sessionAttributes = {};
     var shouldEndSession = true;
-    var speechOutput = "Account is still linked with My Remote";
-    var repromptText = "";
-    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-    context.succeed(response);
-}
-
-/**
- *  Check Link Pin
- * @param userData
- * @param intentRequest
- * @param session
- * @param context
- */
-function handleLink(userData, intentRequest, session, context){
-
-    // Check url property exist
-    if (typeof userData.Item.url != "undefined") {
-        var url = userData.Item.url;
-
-        // Check if Account is linked
-        if (url.length > 0) {
-            var cardTitle = 'Account Already Linked';
-            var cardText = 'Alexa is already linked with My Remote';
-            var sessionAttributes = {};
-            var shouldEndSession = false;
-            var speechOutput = "Your Account is already linked";
-            var repromptText = "You can remove Account Link by saying: Remove Account Link. What to do you want to do?";
-            var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-            context.succeed(response);
-        }
-    }else {
-            var pin = intentRequest.intent.slots.pin.value;
-
-            // Check Pin
-            if (pin){
-                handleLinkAccount(userData, intentRequest, session, context);
-            } else {
-            handleNoSlotDialogRequest(userData, intentRequest, session, context);
-            }
-        }
-
-}
-
-/**
- *  Called on Pin Intent
- * @param userData
- * @param intentRequest
- * @param session
- * @param context
- */
-function handlePin(userData, intentRequest, session, context) {
-    if(debug) console.log(session.attributes);
-    if(session.attributes){
-        handleLink(userData, intentRequest, session, context);
-    }
-}
-
-/**
- * Called on when trying to Link Account
- * @param userData
- * @param intentRequest
- * @param session
- * @param context
- */
-function handleLinkAccount(userData, intentRequest, session, context){
-    var cardTitle = 'Account Linked';
-    var cardText = 'Alexa is now linked with My Remote';
-    var sessionAttributes = {};
-    var shouldEndSession = false;
-    var speechOutput = "";
-    var repromptText = "";
-    var pin = intentRequest.intent.slots.pin.value;
-
-    if (debug) console.log('my pin is:'+pin);
-    // Validate Pin
-    request.post(
-        'https://eddy.tinyelectrons.com/alexa/config',
-        { form: { pin: pin } },
-        function (error, response, body) {
-            if (!error && response.statusCode == 200) {
-                var jsonResponse = JSON.parse(body);
-
-                if (typeof jsonResponse.url != "undefined") {
-
-                    speechOutput = "Account Linked.";
-                    repromptText = "You can say, What are my Activities. What do you you want to do?";
-                    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-
-                    // Save User Data
-                    if (debug) console.log('done saving');
-
-                    userData.Item.url = jsonResponse.url;
-                    saveAndExit(userData, context, response);
-                }else{
-                    speechOutput = "Failed to Link Account";
-                    repromptText = "Please say your Account Pin Again";
-                    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-                    context.succeed(response)
-                }
-            }
-
-            if(error){
-                if (debug) console.log('error');
-                if (debug) console.log(error);
-                speechOutput = "Failed to Link Account";
-                repromptText = "Please say your Account Pin Again";
-                var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-                context.succeed(response);
-
-            }
-        }
-    );
-
-}
-
-/**
- * Called when Link Account has no Pin
- * @param userData
- * @param intentRequest
- * @param session
- * @param context
- */
-function handleNoSlotDialogRequest(userData, intentRequest, session, context) {
-    var pin = intentRequest.intent.slots.pin.value;
-
-    // Check Pin
-    if (!pin) {
-        // No Pin Slot
-        var cardTitle = 'Account Pin';
-        var cardText = 'Please say your Account Pin, found in My Remote\'s Companion website';
-        var sessionAttributes = {'pinAsked':true};
-        var shouldEndSession = false;
-        var repromptText = "Please say your Account Pin.";
-        var speechOutput = repromptText;
-        var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-        context.succeed(response);
-    } else {
-        // Get Pin re-prompt
-        handleLinkAccount(intent, session, response);
-    }
-}
-
-/**
- * Called on Activities Intent
- * @param userData
- * @param intentRequest
- * @param session
- * @param context
- */
-function handleActivities(userData, intentRequest, session, context) {
-    var list = eddyData.activities;
-    var cardTitle = 'My Activities';
-    var cardText = '';
-    var repromptText = " " ;
-    var sessionAttributes = {};
-    var shouldEndSession = false;
     var speechOutput = "";
 
     var size = 0;
     var myActivities;
 
-    var url = '';
-    if (typeof userData.Item.url != "undefined") {
-        url  = userData.Item.url;
-    }
-
-    if(url.length > 0) {
-        // Loop thorugh the list
-        for (var k in list) {
-            if (k !== 'error') {
-                var error = eddyData.activities.error[k];
-                if (myActivities) {
-                    myActivities = myActivities + ", " + error['title'];
-                } else {
-                    myActivities = error['title'];
-                }
-                size++;
-            }
-        }
-
-        if (size == 0) {
-            speechOutput = "No Activities Found. Please Add Activities on eddy.tinyelectrons.com";
-            shouldEndSession = true;
-        } else {
-            if (size == 1) {
-                speechOutput = "Your Activity is: " + myActivities;
-                repromptText = "What Activity do you want to do?";
-            } else {
-                speechOutput = "Your Activities are: " + myActivities;
-                repromptText = "What Activity do you want to do?";
-            }
-        }
+    if(typeof session.user.accessToken == "undefined") {
+        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
     }else{
-        speechOutput = "Your Account is Not Linked";
-        repromptText = "To link account, say Link Account";
+
+        var url = TOKEN_URL + session.user.accessToken;
+        request(url, function (error, response, body) {
+
+            if (!error && response.statusCode == 200) {
+                var myResponse = JSON.parse(body);
+                if(myResponse.success == false){
+                    repromptText = "";
+                    sessionAttributes = {};
+                    speechOutput = "Your account link was removed from the companion website";
+
+                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                }else {
+                    // Loop through the list
+                    var list = myResponse.activities;
+                    var lastActivity = "";
+
+                    for (var k in list) {
+                        if (k !== 'error') {
+                            var currentActivity = myResponse.activities.error[k];
+                            if (myActivities) {
+                                lastActivity = currentActivity['title'];
+                                myActivities = myActivities + ", " + currentActivity['title'];
+                            } else {
+                                myActivities = currentActivity['title'];
+                            }
+                            size++;
+                        }
+                    }
+
+                    if (size == 0) {
+                        speechOutput = "No Activities Found. Please Add Activities on eddy dot tiny electrons dot com";
+                    } else {
+                        shouldEndSession = false;
+                        if (size == 1) {
+                            speechOutput = "Your Activity is: " + myActivities;
+                            repromptText = "What Activity do you want to do?";
+                        } else {
+                            speechOutput = "Your Activities are: " + myActivities.replace(lastActivity, "and " + lastActivity);
+                            repromptText = "What Activity do you want to do?";
+                        }
+                    }
+
+                    callback(sessionAttributes, buildSpeechletResponse("Activity List", speechOutput, repromptText, shouldEndSession));
+                }
+            }else{
+                repromptText = "";
+                sessionAttributes = {};
+                speechOutput = error;
+
+                callback(sessionAttributes, buildSpeechletResponse(error, speechOutput, repromptText, shouldEndSession));
+            }
+
+        });
+
     }
 
-    cardText = speechOutput;
-    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-    context.succeed(response);
 }
 
 /**
- * Called on Activity Intent such as Watch TV, etc.
- * @param userData
- * @param intentRequest
+ * Activities
+ *
+ * @param intent
  * @param session
- * @param context
- * @returns {boolean}
+ * @param callback
  */
-function handleSendIR(userData, intentRequest, session, context){
-    var intent_name = intentRequest.intent.name;
-    var cardTitle = intent_name;
-    var cardText = '';
+function handleActivity(intent, session, callback){
+    var intent_name = intent.name;
     var repromptText = "";
     var sessionAttributes = {};
     var shouldEndSession = true;
     var speechOutput = "";
 
-    // Check if user has the account linked
-    if (typeof userData.Item.url != "undefined") {
-        var url  = userData.Item.url;
+    console.log(intent_name);
 
-        if (typeof eddyData.activities[intent_name] != "undefined") {
-
-            var signals = eddyData.activities[intent_name];
-            var error = eddyData.activities.error[intent_name];
-
-            var max = 0;
-            for (var k in signals) {
-                if (signals.hasOwnProperty(k)) {
-                    ++max;
-                }
-            }
-
-            // Create Command Pair
-            var cmds = [];
-            for (var i = 0; i < max; i++) {
-                var cmd = signals[i][0];
-                var delay = Number(signals[i][1]) < 400 ? 400: Number(signals[i][1]);
-                cmds.push(cmd + '\r', delay);
-            }
-
-            // Remove trailing delay
-            if(max > 1){
-                cmds.pop();
-            }
-
-            var accessToken = session.accessToken;
-            accessToken = true;
-            if (accessToken === null) {
-                response.linkAccount().shouldEndSession(true).say('Your My Remote account is not linked. Please use the Alexa App to link the account.');
-                return true;
-            } else {
-
-                itach.send(cmds, function (err, res) {
-                    if (err) {
-                        speechOutput = "Could not send signals to " + error["title"] + "\nSignals: " + error["count"];
-                        cardTitle = error["title"];
-                    } else {
-                        cardTitle = error["title"];
-                        speechOutput = "OK"
-                    }
-
-                    cardText = speechOutput;
-                    var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-                    context.succeed(response);
-                });
-            }
-        } else {
-            speechOutput = "Activity is not set.";
-            repromptText = "You can say, ask My Remote What are my Activities. What do you you want to do?";
-            cardText = speechOutput + 'To Set Activity go to My Remote\'s companion website';
-            var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-            context.succeed(response);
-        }
+    if(typeof session.user.accessToken == "undefined") {
+        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
     }else{
-        speechOutput = "Your Account is Not Linked";
-        repromptText = "To link account, say Link Account";
-        shouldEndSession = false;
-        cardText = speechOutput;
-        var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-        context.succeed(response);
-    }
 
-}
+        var url = TOKEN_URL + session.user.accessToken;
+        request(url, function (error, response, body) {
 
+            if (!error && response.statusCode == 200) {
+                var myResponse = JSON.parse(body);
+                if(myResponse.success == false){
+                    repromptText = "";
+                    sessionAttributes = {};
+                    speechOutput = "Your account link was removed from the companion website";
 
-// **************************************** //
-//                  Database                //
-// **************************************** //
+                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                }else {
 
-/**
- *  User DB
- * @param event
- * @param context
- * @param userData
- */
-function onUserDataLoad(event, context, userData) {
-    if(debug) console.log('After User load: ' + event.request.type);
-    if (event.request.type === "LaunchRequest") {
-        onLaunch(userData, event.request, event.session, context);
+                    // Check if Intent Exist from the website
+                    if(!myResponse.activities.hasOwnProperty(intent_name)){
+                        // 4.3 Not relevant Response
+                        callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                    }else {
 
-    } else if (event.request.type === "IntentRequest") {
-        onIntent(userData, event.request, event.session, context);
+                        var signals = myResponse.activities[intent_name];
+                        var myActivity = myResponse.activities.error[intent_name];
 
-    } else if (event.request.type === "SessionEndedRequest") {
-        onSessionEnded(event.request, event.session);
-        context.succeed();
-    }
-}
-
-
-/**
- *  Save User Data
- * @param userData
- * @param context
- * @param response
- */
-function saveAndExit(userData, context, response) {
-    if(debug) console.log('Saving: ');
-    var params = {
-        TableName: tableName,
-        Item: userData.Item
-    };
-
-    if(debug) console.log('Saving: ' + JSON.stringify(params));
-    dynamo.putItem(params, function(err, data) {
-        if (err) {
-            if(debug)  console.log('Error Save Handler: ' + err);
-            context.fail("Exception: " + err);
-        } else {
-            context.succeed(response);
-        }
-    });
-}
-
-/**
- *  Unlink Account
- * @param userData
- * @param context
- * @param response
- */
-function unlinkAccount(userData, context, response) {
-    if(debug) console.log('removing link: ');
-    var params = {
-        TableName: tableName,
-        Key: {
-            userId: userData.Item.userId
-        }
-    };
-
-    if(debug) console.log('Saving: ');
-    dynamo.deleteItem(params, function(err, data) {
-        if (err) {
-            if(debug) console.log('Error Save Handler: ' + err);
-            context.fail("Exception: " + err);
-        } else {
-            context.succeed(response);
-        }
-    });
-}
-
-
-/**
- *  Get User Data
- * @param event
- * @param context
- * @param callback
- */
-function getUserData(event, context, callback) {
-    // Check if the user ID has an entry on DB. If not, need to create new one.
-    // If exists, start a new barbecue.
-    if(debug) console.log('Get User Data = ' + event.session.user.userId);
-
-    var params = {
-        TableName: tableName,
-        Key: {
-            userId: event.session.user.userId
-        }
-    };
-    dynamo.getItem(params, function(err, data) {
-        if (err) {
-            if(debug) console.log('Error GET Handler: ' + err);
-            context.fail("Exception: " + err);
-        } else {
-            if(debug) console.log('Got User Data');
-            if (!data.Item) {
-                if(debug) console.log('New User, creating data');
-                data = {
-                    Item: {
-                        userId: event.session.user.userId
-                    }
-                };
-                callback(event, context, data);
-            } else {
-                if(debug) console.log('Existing User');
-
-                if (typeof data.Item.url != "undefined") {
-                    var url = data.Item.url;
-
-                    request(url, function (error, response, body) {
-                        if (!error && response.statusCode == 200) {
-
-                            var myResponse = JSON.parse(body);
-                            if(myResponse.success == false){
-                                var cardTitle = 'Accounted Removed';
-                                var cardText = 'My Account was removed from the website';
-                                var repromptText = "";
-                                var sessionAttributes = {};
-                                var shouldEndSession = true;
-                                var speechOutput = "My Account was removed from the website";
-                                var response = buildSpeechletResponse(cardTitle, cardText, speechOutput, repromptText, shouldEndSession, sessionAttributes);
-                                unlinkAccount({Item: {userId: event.session.user.userId}}, context, response);
-                            }else {
-                                // Set Eddy Data
-                                eddyData = myResponse;
-                                itach = new Itach(eddyData.user.host, eddyData.user.port);
-
-                                // Return Data
-                                data.Item.eddyData = eddyData;
-                                callback(event, context, data);
+                        var max = 0;
+                        for (var k in signals) {
+                            if (signals.hasOwnProperty(k)) {
+                                ++max;
                             }
                         }
-                    });
+
+                        // Create Command Pair
+                        var cmds = [];
+                        for (var i = 0; i < max; i++) {
+                            var cmd = signals[i][0];
+                            var delay = Number(signals[i][1]) < 400 ? 400 : Number(signals[i][1]);
+                            cmds.push(cmd + '\r', delay);
+                        }
+
+                        // Remove trailing delay
+                        if (max > 1) {
+                            cmds.pop();
+                        }
+
+                        // Send Signals to Global Cache
+                        var itach = new Itach(myResponse.user.host, myResponse.user.port);
+                        itach.send(cmds, function (err, res) {
+
+                            console.log(cmds);
+                            console.log(res);
+                            console.log(err);
+
+                            if (err) {
+                                speechOutput = "Could not send signals to " + myActivity["title"] + "\nSignals: " + myActivity["count"];
+                            } else {
+                                speechOutput = "OK"
+                            }
+
+                            callback(sessionAttributes, buildSpeechletResponse(myActivity["title"], speechOutput, repromptText, shouldEndSession));
+                        });
+
+                    }
+
                 }
+            }else{
+                repromptText = "";
+                sessionAttributes = {};
+                speechOutput = error;
+
+                callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", speechOutput, repromptText, shouldEndSession));
             }
 
-        }
-    });
+        });
+
+    }
+
+}
+
+/**
+ * Devices
+ *
+ * @param intent
+ * @param session
+ * @param callback
+ */
+function handleButtonPress(intent, session, callback){
+    var device_type = intent.slots.device_type.value;
+    var button_name = intent.slots.button_name.value;
+    var device_brand = intent.slots.brand.value;
+    var multiplier = typeof intent.slots.multiplier.value == "undefined" ? 1 : intent.slots.multiplier.value ;
+
+    console.log("device_type: " + device_type + ", button_name: " + button_name + " device_brand: " + device_brand + " multiplier: " + multiplier);
+
+    var repromptText = "";
+    var sessionAttributes = {};
+    var shouldEndSession = true;
+    var speechOutput = "";
+
+    if(typeof session.user.accessToken == "undefined") {
+        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+    }else{
+
+        var url = TOKEN_URL + session.user.accessToken;
+        request(url, function (error, response, body) {
+
+            if (!error && response.statusCode == 200) {
+                var myResponse = JSON.parse(body);
+                if(myResponse.success == false){
+                    repromptText = "";
+                    sessionAttributes = {};
+                    speechOutput = "Your account link was removed from the companion website";
+
+                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                }else {
+
+                    device_type = device_type ? device_type.trim().toLowerCase(): '';
+                    button_name = button_name ? button_name.trim().toLowerCase(): '';
+                    device_brand = device_brand ? device_brand.trim().toLowerCase(): '';
+
+                    var match = [];
+                    var matchButton = [];
+                    var exactMatch = false;
+
+                    // Check Current Device
+                    for (var current_device in myResponse.devices) {
+
+                        if (!myResponse.devices.hasOwnProperty(current_device)) continue;
+
+                        // Loop through Brand
+                        var brands = myResponse.devices[current_device];
+                        for (var current_brand in brands) {
+                            if(!brands.hasOwnProperty(current_brand)) continue;
+
+
+                            // Loop through Buttons
+                            var button = brands[current_brand];
+                            for (var current_button in button) {
+                                if (!button.hasOwnProperty(current_button)) continue;
+
+                                    var myButton = myResponse.devices[current_device][current_brand][current_button];
+
+                                    // Match Button
+                                    var button_found = false;
+                                    var tmp_current_button = current_button.trim().toLowerCase();
+                                    if (tmp_current_button.indexOf(button_name) > -1) {
+                                        button_found = true;
+                                    }
+
+                                    // Match Devices
+                                    if(device_type){
+
+                                        // Match Brand
+                                        if(device_brand){
+                                            var tmp_current_brand = current_brand.trim().toLowerCase();
+                                            if (tmp_current_brand.indexOf(device_brand) > -1) {
+                                                if(button_found && !exactMatch){
+                                                    // Device + Brand + Button Found
+                                                    var obj = {
+                                                        match: true,
+                                                        device_found: true,
+                                                        brand_found: true,
+                                                        button_found: true,
+                                                        device: current_device,
+                                                        brand: current_brand,
+                                                        button: current_button,
+                                                        signal: myButton
+                                                    };
+                                                    match.push(obj);
+                                                    exactMatch = true;
+                                                }
+                                            }else{
+                                                // Couldn't match Brand?
+                                                if(button_found && !exactMatch){
+                                                    var obj = {
+                                                        match: true,
+                                                        device_found: false,
+                                                        brand_found: true,
+                                                        button_found: true,
+                                                        device: current_device,
+                                                        brand: current_brand,
+                                                        button: current_button,
+                                                        signal: myButton
+                                                    };
+                                                    matchButton.push(obj);
+                                                }
+                                            }
+                                        }else{
+                                            // Match Device + Button
+                                            var tmp_current_device = current_device.trim().toLowerCase();
+                                            if (tmp_current_device.indexOf(device_type) > -1) {
+                                                if(button_found && !exactMatch){
+                                                    // Device + Button Found
+                                                    var obj = {
+                                                        match: true,
+                                                        device_found: true,
+                                                        brand_found: false,
+                                                        button_found: true,
+                                                        device: current_device,
+                                                        button: current_button,
+                                                        signal: myButton
+                                                    };
+                                                    match.push(obj);
+                                                    exactMatch = true;
+                                                }
+                                            }else{
+                                                if(button_found && !exactMatch){
+                                                    // Brand + Button Found
+                                                    var obj = {
+                                                        match: true,
+                                                        device_found: false,
+                                                        brand_found: false,
+                                                        button_found: true,
+                                                        device: current_device,
+                                                        brand: current_brand,
+                                                        button: current_button,
+                                                        signal: myButton
+                                                    };
+                                                    matchButton.push(obj);
+                                                }
+                                            }
+                                        }
+
+                                    }else{
+                                        var tmp_current_brand = current_brand.trim().toLowerCase();
+                                        if (tmp_current_brand.indexOf(device_brand) > -1) {
+                                            if(button_found && !exactMatch){
+                                                // Brand + Button Found
+                                                var obj = {
+                                                    match: true,
+                                                    device_found: false,
+                                                    brand_found: true,
+                                                    button_found: true,
+                                                    device: current_device,
+                                                    brand: current_brand,
+                                                    button: current_button,
+                                                    signal: myButton
+                                                };
+                                                match.push(obj);
+                                                exactMatch = true;
+                                            }
+                                        }else{
+                                            if(button_found && !exactMatch){
+                                                var obj = {
+                                                    match: true,
+                                                    device_found: false,
+                                                    brand_found: true,
+                                                    button_found: true,
+                                                    device: current_device,
+                                                    brand: current_brand,
+                                                    button: current_button,
+                                                    signal: myButton
+                                                };
+                                                matchButton.push(obj);
+                                            }
+                                        }
+                                    }
+
+                            }
+
+                        }
+                    }
+
+                    // Matched anything?
+                    if(match.length == 1){
+                        if( match[0]['match']){
+
+                            // Cap at 10 repeats
+                            if(multiplier > 10){
+                                multiplier = 10
+                            }
+
+                            // Repeat Signal?
+                            var cmds = [];
+                            for(var y = 0; y < multiplier; y++)
+                            {
+                                var cmd = match[0]['signal'][0];
+                                var delay = Number(match[0]['signal'][1]) < 400 ? 400 : Number(match[0]['signal'][1]);
+                                cmds.push(cmd + '\r', delay);
+                            }
+
+
+                            // Remove trailing delay
+                            if (multiplier > 1) {
+                                cmds.pop();
+                            }
+
+                            // Send Signals to Global Cache
+                            var itach = new Itach(myResponse.user.host, myResponse.user.port);
+                            itach.send(cmds, function (err, res) {
+
+                                console.log(cmds);
+                                console.log(res);
+                                console.log(err);
+
+                                if (err) {
+                                    speechOutput = "Could not send signals to " + match[0]["device"] + "\nButton: " + match[0]["button"];
+                                } else {
+                                    speechOutput = "OK"
+                                }
+
+                                callback(sessionAttributes, buildSpeechletResponse(match[0]["button"], speechOutput, repromptText, shouldEndSession));
+                            });
+
+                        }
+
+                    }else{
+
+                        if(matchButton.length > 0) {
+                            callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+
+                            //if (device_brand) {
+                            //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " +  device_brand + " " + device_type + " <break time='1s'/>\n";
+                            //} else {
+                            //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " + device_type + "  <break time='1s'/>\n";
+                            //}
+                            //
+                            //var msg = '';
+                            //for (var x = 0; x < matchButton.length; x++) {
+                            //    msg += (x + 1) + "<break time='1s'/> " + matchButton[x]['brand'] + " " + matchButton[x]['device'] + "<break time='1s'/>\n";
+                            //}
+                            //
+                            //callback(sessionAttributes, buildSpeechletResponse("Error Pressing Button", speechOutput + msg, repromptText, shouldEndSession));
+
+                        }else{
+                            callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                        }
+
+                    }
+
+                }
+            }else{
+                repromptText = "";
+                sessionAttributes = {};
+                speechOutput = error;
+
+                callback(sessionAttributes, buildSpeechletResponse("Error Pressing Button", speechOutput, repromptText, shouldEndSession));
+            }
+
+        });
+
+    }
+
+}
+
+/**
+ * Help
+ *
+ * @param intent
+ * @param session
+ * @param callback
+ */
+function handleGetHelpRequest(intent, session, callback) {
+    var speechOutput = "You can say, ask Voice Remote, What are my Activities, or, tell Voice Remote to Press the Power button on my TV",
+        repromptText = "What do you want to do?";
+    var shouldEndSession = false;
+
+    callback(session.attributes, buildSpeechletResponseWithoutCard(speechOutput, repromptText, shouldEndSession));
+}
+
+/**
+ * Finish Session
+ *
+ * @param intent
+ * @param session
+ * @param callback
+ */
+function handleFinishSessionRequest(intent, session, callback) {
+    callback(session.attributes, buildSpeechletResponseWithoutCard("Thanks for using Voice Remote!", "", true));
+}
+
+// ******************************************************************************** //
+//                         Helper functions to build responses                      //
+// ******************************************************************************** //
+
+/**
+ *
+ * @param title
+ * @param output
+ * @param repromptText
+ * @param shouldEndSession
+ * @returns {{outputSpeech: {type: string, text: *}, card: {type: string, title: *, content: *}, reprompt: {outputSpeech: {type: string, text: *}}, shouldEndSession: *}}
+ */
+function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
+    return {
+        outputSpeech: {
+            type: "PlainText",
+            text: output
+        },
+        card: {
+            type: "Simple",
+            title: title,
+            content: output
+        },
+        reprompt: {
+            outputSpeech: {
+                type: "PlainText",
+                text: repromptText
+            }
+        },
+        shouldEndSession: shouldEndSession
+    };
+}
+
+/**
+ *
+ * @param output
+ * @param repromptText
+ * @param shouldEndSession
+ * @returns {{outputSpeech: {type: string, text: *}, reprompt: {outputSpeech: {type: string, text: *}}, shouldEndSession: *}}
+ */
+function buildSpeechletResponseWithoutCard(output, repromptText, shouldEndSession) {
+    return {
+        outputSpeech: {
+            type: "PlainText",
+            text: output
+        },
+        reprompt: {
+            outputSpeech: {
+                type: "PlainText",
+                text: repromptText
+            }
+        },
+        shouldEndSession: shouldEndSession
+    };
+}
+
+/**
+ *
+ * @param sessionAttributes
+ * @param speechletResponse
+ * @returns {{version: string, sessionAttributes: *, response: *}}
+ */
+function buildResponse(sessionAttributes, speechletResponse) {
+    return {
+        version: "1.0",
+        sessionAttributes: sessionAttributes,
+        response: speechletResponse
+    };
+}
+
+/**
+ *
+ * @param output
+ * @returns {{version: string, response: {outputSpeech: {type: string, text: *}, card: {type: string}, shouldEndSession: boolean}}}
+ */
+function buildLinkCard (output) {
+    return {
+        outputSpeech: {
+            type: "PlainText",
+            text: output
+        },
+        "card": {
+            "type": "LinkAccount"
+        },
+        shouldEndSession: true
+    }
 }

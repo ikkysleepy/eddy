@@ -9,7 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dynamodb-doc": "^1.0.0",
     "request": "^2.72.0"
   }
 }
