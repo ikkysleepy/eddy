@@ -49,6 +49,11 @@
     {"intent": "AMAZON.CancelIntent"},
     {"intent": "DeviceIntent","slots": [{"name": "button_name","type":"LIST_OF_BUTTONS"},{"name": "device_type","type":"LIST_OF_DEVICES"}, {"name": "brand","type":"LIST_OF_BRANDS"}, {"name":"multiplier", "type":"AMAZON.NUMBER"}]},
     {"intent": "PlexIntent"},
-    {"intent": "ChannelIntent","slots": [{"name": "channel","type":"LIST_OF_CHANNELS"}]}
+    {"intent": "ChannelIntent","slots": [{"name": "channel","type":"LIST_OF_CHANNELS"}]},
+    {"intent": "HomeIntent"},
+    {"intent": "ExitIntent"},
+    {"intent": "LiveIntent"},
+    {"intent": "ChannelListIntent"},
+    {"intent": "WatchSportsIntent"}
   ]
 }

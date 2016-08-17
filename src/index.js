@@ -5,12 +5,13 @@
 // ******************************************************************************** //
 /**
  * Eddy (Voice Remote) Skill for Amazon Alexa
- * v 0.7 - August 12, 2016
+ * v 0.8 - August 16, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
- * v 0.7 Added Exit, Home, Live, and Plex Intents. Also Added Channels Intent.
- * v 0.6 Repeat Max of 10, Adjusted shouldEndSession
+ * v 0.8 Updated Help SSML - August 16, 2016
+ * v 0.7 Added Exit, Home, Live, and Plex Intents. Also Added Channels Intent. - August 14, 2016
+ * v 0.6 Repeat Max of 10, Adjusted shouldEndSession - August 12, 2016
  * v 0.5 Added Device Intent
  * v 0.4 Re-created script, fixed issue with accessToken
  * v 0.3 Fixed HTTPS Issue
@@ -46,7 +47,7 @@ var request = require('request');
 // **************************************** //
 
 // Intents & Skill Info
-var intents = ["WatchTVIntent","ExitIntent","HomeIntent", "LiveIntent","WatchMyShowIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","PlexIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
+var intents = ["WatchTVIntent","WatchSportsIntent","ExitIntent","HomeIntent", "LiveIntent","WatchMyShowIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","PlexIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
 var SKILL_ID = "amzn1.echo-sdk-ams.app.194b7d6a-18e3-4c94-b4c9-6d921bd21a6d";
 var TOKEN_URL = 'https://eddy.tinyelectrons.com/index.php/alexa/config?token=';
 
@@ -116,7 +117,7 @@ function onLaunch(launchRequest, session, callback) {
  * Called when the user specifies an intent for this skill.
  */
 function onIntent(intentRequest, session, callback) {
-    console.log("onIntent requestId=" + intentRequest.requestId + ", sessionId=" + session.sessionId);
+    console.log("onIntent="+intentRequest.intent.name+ ", requestId=" + intentRequest.requestId + ", sessionId=" + session.sessionId);
 
     var intent = intentRequest.intent,
         intentName = intentRequest.intent.name,
@@ -125,7 +126,9 @@ function onIntent(intentRequest, session, callback) {
     // dispatch custom intents to handlers here
     if ("ActivitiesIntent" === intentName) {
         handleActivitiesList(intent, session, callback);
-    }else if ("AMAZON.HelpIntent" === intentName) {
+    }else if ("ChannelListIntent" === intentName) {
+        handleChannelList(intent, session, callback);
+    }else if ("AMAZON.HelpIntent" === intentName || "HelpIntent" === intentName) {
         handleGetHelpRequest(intent, session, callback);
     }else if ("AMAZON.StopIntent" === intentName) {
         handleFinishSessionRequest(intent, session, callback);
@@ -237,6 +240,84 @@ function handleActivitiesList(intent, session, callback) {
                     }
 
                     callback(sessionAttributes, buildSpeechletResponse("Activity List", speechOutput, repromptText, shouldEndSession));
+                }
+            }else{
+                repromptText = "";
+                sessionAttributes = {};
+                speechOutput = error;
+
+                callback(sessionAttributes, buildSpeechletResponse(error, speechOutput, repromptText, shouldEndSession));
+            }
+
+        });
+
+    }
+
+}
+
+/**
+ * Activity List
+ *
+ * @param intent
+ * @param session
+ * @param callback
+ */
+function handleChannelList(intent, session, callback) {
+    var repromptText = "" ;
+    var sessionAttributes = {};
+    var shouldEndSession = true;
+    var speechOutput = "";
+
+    var size = 0;
+    var myChannel;
+
+    if(typeof session.user.accessToken == "undefined") {
+        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+    }else{
+
+        var url = TOKEN_URL + session.user.accessToken;
+        request(url, function (error, response, body) {
+
+            if (!error && response.statusCode == 200) {
+                var myResponse = JSON.parse(body);
+                if(myResponse.success == false){
+                    repromptText = "";
+                    sessionAttributes = {};
+                    speechOutput = "Your account link was removed from the companion website";
+
+                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                }else {
+                    // Loop through the list
+                    var list = myResponse.channel_lists;
+                    var lastChannel = "";
+
+                    for (var k in list) {
+                        if (k !== 'error') {
+                            var currentChannel = k;
+                            if (myChannel) {
+                                lastChannel = currentChannel;
+                                myChannel = myChannel + ", " + currentChannel;
+                            } else {
+                                myChannel = currentChannel;
+                            }
+                            size++;
+                        }
+                    }
+
+                    if (size == 0) {
+                        speechOutput = "No Channels Found. Please Add Channels on eddy dot tiny electrons dot com";
+                    } else {
+                        shouldEndSession = false;
+                        if (size == 1) {
+                            speechOutput = "Your Channel is: " + myChannel;
+                            repromptText = "What Channel do you want to go to?";
+                        } else {
+                            speechOutput = "Your Channels are: " + myChannel.replace(lastChannel, "and " + lastChannel);
+                            repromptText = "What Channel do you want to go to?";
+                        }
+                    }
+
+                    callback(sessionAttributes, buildSpeechletResponse("Channel List", speechOutput, repromptText, shouldEndSession));
                 }
             }else{
                 repromptText = "";
@@ -732,11 +813,24 @@ function handleChannel(intent, session, callback){
  * @param callback
  */
 function handleGetHelpRequest(intent, session, callback) {
-    var speechOutput = "You can say, ask Voice Remote, What are my Activities, or, tell Voice Remote to Press the Power button on my TV",
+    var speechOutput = "<speak>There are 5 core commands you can say: \
+                        1 <break time='1s'/> What are my Activities? <break time='1s'/> \
+                        2 <break time='1s'/> Call Activity by name, such as  <break time='1s'/> \
+                           Watch TV or  <break time='1s'/>\
+                           Increase Volume  <break time='1s'/>\
+                        3 <break time='1s'/> Press any button on your device, by saying  <break time='1s'/> \
+                           Press Volume button on my Soundbar  <break time='1s'/>  or \
+                           Press Volume button on my Sony 5 Times <break time='1s'/> \
+                        4 <break time='1s'/> Get a list of Channels by saying  <break time='1s'/> \
+                           List My Channels<break time='1s'/> \
+                        and the last command you can say is  <break time='1s'/> \
+                        5 <break time='1s'/> Change Channel, by saying <break time='1s'/> \
+                            Go to ABC <break time='1s'/> or \
+                            <break time='1s'/> Go to Fox Channel</speak>",
         repromptText = "What do you want to do?";
     var shouldEndSession = false;
 
-    callback(session.attributes, buildSpeechletResponseWithoutCard(speechOutput, repromptText, shouldEndSession));
+    callback(session.attributes, buildSpeechletResponseWithoutCardSSML(speechOutput, repromptText, shouldEndSession));
 }
 
 /**
@@ -795,6 +889,29 @@ function buildSpeechletResponseWithoutCard(output, repromptText, shouldEndSessio
         outputSpeech: {
             type: "PlainText",
             text: output
+        },
+        reprompt: {
+            outputSpeech: {
+                type: "PlainText",
+                text: repromptText
+            }
+        },
+        shouldEndSession: shouldEndSession
+    };
+}
+
+/**
+ *
+ * @param output
+ * @param repromptText
+ * @param shouldEndSession
+ * @returns {{outputSpeech: {type: string, text: *}, reprompt: {outputSpeech: {type: string, text: *}}, shouldEndSession: *}}
+ */
+function buildSpeechletResponseWithoutCardSSML(output, repromptText, shouldEndSession) {
+    return {
+        outputSpeech: {
+            type: "SSML",
+            ssml: output
         },
         reprompt: {
             outputSpeech: {

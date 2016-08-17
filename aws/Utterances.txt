@@ -149,4 +149,29 @@ PlexIntent Plex
 ChannelIntent Go to Channel {channel}
 ChannelIntent Navigate to {channel}
 ChannelIntent Go to {channel}
+ChannelIntent Go to {channel} channel
 ChannelIntent Channel {channel}
+HomeIntent Go to Home
+HomeIntent Go Home
+HomeIntent Home
+ExitIntent Go to Exit
+ExitIntent Go Exit
+ExitIntent Exit
+LiveIntent Go to Live TV
+LiveIntent Go to Live
+LiveIntent Go Live TV
+LiveIntent Go Live
+LiveIntent Live TV
+LiveIntent Live
+ChannelListIntent List Channels
+ChannelListIntent Channels
+ChannelListIntent List Channel
+ChannelListIntent List my Channels
+ChannelListIntent What are my Channels
+WatchSportsIntent Watch Sports
+WatchSportsIntent Sports
+WatchSportsIntent RAIDERS
+WatchSportsIntent Watch Football
+WatchSportsIntent Watch Baseball
+WatchSportsIntent Watch Soccer
+WatchSportsIntent Watch Olypics
