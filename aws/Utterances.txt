@@ -6,8 +6,8 @@ AllOffIntent All Off
 AllOffIntent GoodNight
 AllOffIntent Off
 AllOffIntent Power All Off
-AppleTVIntent Apple TV
-AppleTVIntent Watch Apple TV
+AppleTVIntent Apple T.V.
+AppleTVIntent Watch Apple T.V.
 AudioOffIntent Power Off Audio
 AudioOffIntent Audio Off
 AudioOffIntent Turn Off Audio
@@ -38,8 +38,8 @@ DVROffToggleIntent Turn Off DVR
 DVROnToggleIntent DVR On
 DVROnToggleIntent Turn On DVR
 FastForwardIntent Fast Forward
-FireTVIntent Fire TV
-FireTVIntent Watch Fire TV
+FireTVIntent Fire T.V.
+FireTVIntent Watch Fire T.V.
 GameIntent Game
 GameIntent Play Game
 GoBackIntent Back
@@ -77,16 +77,18 @@ SonosIntent Listen to Sonos
 SonosIntent Sonos
 TivoOnToggleIntent Tivo On
 TivoOnToggleIntent Turn On Tivo
-TVOffIntent Power Off TV
-TVOffIntent Turn Off TV
-TVOffIntent TV off
-TVOnIntent Turn On TV
-TVOnIntent TV On
+TVOffIntent Power Off T.V.
+TVOffIntent Turn Off T.V.
+TVOffIntent T.V. off
+TVOnIntent Turn On T.V.
+TVOnIntent T.V. On
 WatchMovieIntent Movie
 WatchMovieIntent Movie On
 WatchMovieIntent Watch a Movie
 WatchTVIntent TV
+WatchTVIntent T.V.
 WatchTVIntent Watch the Tube
+WatchTVIntent Watch T.V.
 WatchTVIntent Watch TV
 WatchMyShowIntent Watch My Show
 WatchMyShowIntent My Show
@@ -94,12 +96,57 @@ WiiIntent Play Wii
 WiiIntent Wii
 XboxIntent Play Xbox
 XboxIntent Xbox
-LinkIntent Link My Account
-LinkIntent Link Account with {pin}
-LinkIntent Account Link {pin}
-LinkIntent Link {pin}
-RemoveLinkIntent Remove Link
-RemoveLinkIntent Link Remove
-RemoveLinkIntent Remove Account
-RemoveLinkIntent Unlink Account
-PinIntent Pin {pin}
+DeviceIntent Press Button {button_name} on {brand}
+DeviceIntent Press {button_name} Button on {brand}
+DeviceIntent Press Button {button_name} on my {brand}
+DeviceIntent Press {button_name} Button on my {brand}
+DeviceIntent Press the Button {button_name} on {brand}
+DeviceIntent Press the {button_name} Button on {brand}
+DeviceIntent Press the Button {button_name} on my {brand}
+DeviceIntent Press the {button_name} Button on my {brand}
+DeviceIntent Press Button {button_name} on {device_type}
+DeviceIntent Press {button_name} Button on {device_type}
+DeviceIntent Press Button {button_name} on my {device_type}
+DeviceIntent Press {button_name} Button on my {device_type}
+DeviceIntent Press the Button {button_name} on {device_type}
+DeviceIntent Press the {button_name} Button on {device_type}
+DeviceIntent Press the Button {button_name} on my {device_type}
+DeviceIntent Press the {button_name} Button on my {device_type}
+DeviceIntent Press Button {button_name} on {brand} {device_type}
+DeviceIntent Press {button_name} Button on {brand} {device_type}
+DeviceIntent Press Button {button_name} on my {brand} {device_type}
+DeviceIntent Press {button_name} Button on my {brand} {device_type}
+DeviceIntent Press the Button {button_name} on {brand} {device_type}
+DeviceIntent Press the {button_name} Button on {brand} {device_type}
+DeviceIntent Press the Button {button_name} on my {brand} {device_type}
+DeviceIntent Press the {button_name} Button on my {brand} {device_type}
+DeviceIntent Press Button {button_name} on {brand} {multiplier} times
+DeviceIntent Press {button_name} Button on {brand} {multiplier} times
+DeviceIntent Press Button {button_name} on my {brand} {multiplier} times
+DeviceIntent Press {button_name} Button on my {brand} {multiplier} times
+DeviceIntent Press the Button {button_name} on {brand} {multiplier} times
+DeviceIntent Press the {button_name} Button on {brand} {multiplier} times
+DeviceIntent Press the Button {button_name} on my {brand} {multiplier} times
+DeviceIntent Press the {button_name} Button on my {brand} {multiplier} times
+DeviceIntent Press Button {button_name} on {device_type} {multiplier} times
+DeviceIntent Press {button_name} Button on {device_type} {multiplier} times
+DeviceIntent Press Button {button_name} on my {device_type} {multiplier} times
+DeviceIntent Press {button_name} Button on my {device_type} {multiplier} times
+DeviceIntent Press the Button {button_name} on {device_type} {multiplier} times
+DeviceIntent Press the {button_name} Button on {device_type} {multiplier} times
+DeviceIntent Press the Button {button_name} on my {device_type} {multiplier} times
+DeviceIntent Press the {button_name} Button on my {device_type} {multiplier} times
+DeviceIntent Press Button {button_name} on {brand} {device_type} {multiplier} times
+DeviceIntent Press {button_name} Button on {brand} {device_type} {multiplier} times
+DeviceIntent Press Button {button_name} on my {brand} {device_type} {multiplier} times
+DeviceIntent Press {button_name} Button on my {brand} {device_type} {multiplier} times
+DeviceIntent Press the Button {button_name} on {brand} {device_type} {multiplier} times
+DeviceIntent Press the {button_name} Button on {brand} {device_type} {multiplier} times
+DeviceIntent Press the Button {button_name} on my {brand} {device_type} {multiplier} times
+DeviceIntent Press the {button_name} Button on my {brand} {device_type} {multiplier} times
+PlexIntent Watch Plex
+PlexIntent Plex
+ChannelIntent Go to Channel {channel}
+ChannelIntent Navigate to {channel}
+ChannelIntent Go to {channel}
+ChannelIntent Channel {channel}

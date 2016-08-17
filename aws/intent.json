@@ -44,10 +44,11 @@
     {"intent": "RewindIntent"},
     {"intent": "NextIntent"},
     {"intent": "SkipIntent"},
-    {"intent": "RemoveLinkIntent"},
-    {"intent": "AMAZON.YesIntent"},
-    {"intent": "AMAZON.NoIntent"},
-    {"intent": "LinkIntent","slots": [{"name": "pin","type": "AMAZON.NUMBER"}]},
-    {"intent": "PinIntent","slots": [{"name": "pin","type": "AMAZON.NUMBER"}]}
+    {"intent": "AMAZON.HelpIntent"},
+    {"intent": "AMAZON.StopIntent"},
+    {"intent": "AMAZON.CancelIntent"},
+    {"intent": "DeviceIntent","slots": [{"name": "button_name","type":"LIST_OF_BUTTONS"},{"name": "device_type","type":"LIST_OF_DEVICES"}, {"name": "brand","type":"LIST_OF_BRANDS"}, {"name":"multiplier", "type":"AMAZON.NUMBER"}]},
+    {"intent": "PlexIntent"},
+    {"intent": "ChannelIntent","slots": [{"name": "channel","type":"LIST_OF_CHANNELS"}]}
   ]
 }

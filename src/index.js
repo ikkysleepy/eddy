@@ -5,10 +5,11 @@
 // ******************************************************************************** //
 /**
  * Eddy (Voice Remote) Skill for Amazon Alexa
- * v 0.6 - August 12, 2016
+ * v 0.7 - August 12, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
+ * v 0.7 Added Exit, Home, Live, and Plex Intents. Also Added Channels Intent.
  * v 0.6 Repeat Max of 10, Adjusted shouldEndSession
  * v 0.5 Added Device Intent
  * v 0.4 Re-created script, fixed issue with accessToken
@@ -24,6 +25,8 @@
  * tell voice remote to Watch TV                                    => Watch TV
  * tell voice remote to Press the Volume UP on my Sony 3 times      => Press Volume up on Sony 3 times
  * tell voice remote to Press the Volume UP on my Soundbar 3 times  => Press Volume up on TV 3 times
+ * tell voice remote to Go to CBS                                   => Goes to 5-1
+ * tell voice remote to Go to Channel ABS                           => Goes to 7-1
  *
  */
 // ******************************************************************************** //
@@ -43,7 +46,7 @@ var request = require('request');
 // **************************************** //
 
 // Intents & Skill Info
-var intents = ["WatchTVIntent","WatchMyShowIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
+var intents = ["WatchTVIntent","ExitIntent","HomeIntent", "LiveIntent","WatchMyShowIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","PlexIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
 var SKILL_ID = "amzn1.echo-sdk-ams.app.194b7d6a-18e3-4c94-b4c9-6d921bd21a6d";
 var TOKEN_URL = 'https://eddy.tinyelectrons.com/index.php/alexa/config?token=';
 
@@ -130,6 +133,8 @@ function onIntent(intentRequest, session, callback) {
         handleFinishSessionRequest(intent, session, callback);
     }else if ("DeviceIntent" === intentName) {
         handleButtonPress(intent, session, callback);
+    }else if ("ChannelIntent" === intentName) {
+        handleChannel(intent, session, callback);
     }else if (inArray) {
         handleActivity(intent, session, callback);
     }else {
@@ -159,7 +164,7 @@ function getWelcomeResponse(callback) {
     var cardTitle = 'Welcome';
     var shouldEndSession = false;
     var speechOutput = "Welcome to Voice Remote, your Home IR Remote Companion.";
-    var repromptText = "You can say, ask Voice Remote What are my Activities  or tell Voice Remote to Press the Power button on my TV. What do you you want to do?";
+    var repromptText = "You can say, ask Voice Remote What are my Activities or tell Voice Remote to Press the Power button on my TV. What do you you want to do?";
 
     sessionAttributes = {
         "speechOutput": speechOutput,
@@ -309,11 +314,12 @@ function handleActivity(intent, session, callback){
                             cmds.pop();
                         }
 
+                        console.log(cmds);
+
                         // Send Signals to Global Cache
                         var itach = new Itach(myResponse.user.host, myResponse.user.port);
                         itach.send(cmds, function (err, res) {
 
-                            console.log(cmds);
                             console.log(res);
                             console.log(err);
 
@@ -380,29 +386,37 @@ function handleButtonPress(intent, session, callback){
                     callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
                 }else {
 
-                    device_type = device_type ? device_type.trim().toLowerCase(): '';
-                    button_name = button_name ? button_name.trim().toLowerCase(): '';
-                    device_brand = device_brand ? device_brand.trim().toLowerCase(): '';
+                    // There needs to be a button
+                    if(typeof button_name == "undefined") {
 
-                    var match = [];
-                    var matchButton = [];
-                    var exactMatch = false;
+                        // 4.3 Not relevant Response
+                        callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                    }else {
 
-                    // Check Current Device
-                    for (var current_device in myResponse.devices) {
+                        // Make Lowercase
+                        device_type = device_type ? device_type.trim().toLowerCase(): '';
+                        button_name = button_name ? button_name.trim().toLowerCase(): '';
+                        device_brand = device_brand ? device_brand.trim().toLowerCase(): '';
 
-                        if (!myResponse.devices.hasOwnProperty(current_device)) continue;
+                        var match = [];
+                        var matchButton = [];
+                        var exactMatch = false;
 
-                        // Loop through Brand
-                        var brands = myResponse.devices[current_device];
-                        for (var current_brand in brands) {
-                            if(!brands.hasOwnProperty(current_brand)) continue;
+                        // Check Current Device
+                        for (var current_device in myResponse.devices) {
+
+                            if (!myResponse.devices.hasOwnProperty(current_device)) continue;
+
+                            // Loop through Brand
+                            var brands = myResponse.devices[current_device];
+                            for (var current_brand in brands) {
+                                if (!brands.hasOwnProperty(current_brand)) continue;
 
 
-                            // Loop through Buttons
-                            var button = brands[current_brand];
-                            for (var current_button in button) {
-                                if (!button.hasOwnProperty(current_button)) continue;
+                                // Loop through Buttons
+                                var button = brands[current_brand];
+                                for (var current_button in button) {
+                                    if (!button.hasOwnProperty(current_button)) continue;
 
                                     var myButton = myResponse.devices[current_device][current_brand][current_button];
 
@@ -414,13 +428,13 @@ function handleButtonPress(intent, session, callback){
                                     }
 
                                     // Match Devices
-                                    if(device_type){
+                                    if (device_type) {
 
                                         // Match Brand
-                                        if(device_brand){
+                                        if (device_brand) {
                                             var tmp_current_brand = current_brand.trim().toLowerCase();
                                             if (tmp_current_brand.indexOf(device_brand) > -1) {
-                                                if(button_found && !exactMatch){
+                                                if (button_found && !exactMatch) {
                                                     // Device + Brand + Button Found
                                                     var obj = {
                                                         match: true,
@@ -435,9 +449,9 @@ function handleButtonPress(intent, session, callback){
                                                     match.push(obj);
                                                     exactMatch = true;
                                                 }
-                                            }else{
+                                            } else {
                                                 // Couldn't match Brand?
-                                                if(button_found && !exactMatch){
+                                                if (button_found && !exactMatch) {
                                                     var obj = {
                                                         match: true,
                                                         device_found: false,
@@ -451,11 +465,11 @@ function handleButtonPress(intent, session, callback){
                                                     matchButton.push(obj);
                                                 }
                                             }
-                                        }else{
+                                        } else {
                                             // Match Device + Button
                                             var tmp_current_device = current_device.trim().toLowerCase();
                                             if (tmp_current_device.indexOf(device_type) > -1) {
-                                                if(button_found && !exactMatch){
+                                                if (button_found && !exactMatch) {
                                                     // Device + Button Found
                                                     var obj = {
                                                         match: true,
@@ -469,8 +483,8 @@ function handleButtonPress(intent, session, callback){
                                                     match.push(obj);
                                                     exactMatch = true;
                                                 }
-                                            }else{
-                                                if(button_found && !exactMatch){
+                                            } else {
+                                                if (button_found && !exactMatch) {
                                                     // Brand + Button Found
                                                     var obj = {
                                                         match: true,
@@ -487,10 +501,10 @@ function handleButtonPress(intent, session, callback){
                                             }
                                         }
 
-                                    }else{
+                                    } else {
                                         var tmp_current_brand = current_brand.trim().toLowerCase();
                                         if (tmp_current_brand.indexOf(device_brand) > -1) {
-                                            if(button_found && !exactMatch){
+                                            if (button_found && !exactMatch) {
                                                 // Brand + Button Found
                                                 var obj = {
                                                     match: true,
@@ -505,8 +519,8 @@ function handleButtonPress(intent, session, callback){
                                                 match.push(obj);
                                                 exactMatch = true;
                                             }
-                                        }else{
-                                            if(button_found && !exactMatch){
+                                        } else {
+                                            if (button_found && !exactMatch) {
                                                 var obj = {
                                                     match: true,
                                                     device_found: false,
@@ -522,76 +536,76 @@ function handleButtonPress(intent, session, callback){
                                         }
                                     }
 
-                            }
-
-                        }
-                    }
-
-                    // Matched anything?
-                    if(match.length == 1){
-                        if( match[0]['match']){
-
-                            // Cap at 10 repeats
-                            if(multiplier > 10){
-                                multiplier = 10
-                            }
-
-                            // Repeat Signal?
-                            var cmds = [];
-                            for(var y = 0; y < multiplier; y++)
-                            {
-                                var cmd = match[0]['signal'][0];
-                                var delay = Number(match[0]['signal'][1]) < 400 ? 400 : Number(match[0]['signal'][1]);
-                                cmds.push(cmd + '\r', delay);
-                            }
-
-
-                            // Remove trailing delay
-                            if (multiplier > 1) {
-                                cmds.pop();
-                            }
-
-                            // Send Signals to Global Cache
-                            var itach = new Itach(myResponse.user.host, myResponse.user.port);
-                            itach.send(cmds, function (err, res) {
-
-                                console.log(cmds);
-                                console.log(res);
-                                console.log(err);
-
-                                if (err) {
-                                    speechOutput = "Could not send signals to " + match[0]["device"] + "\nButton: " + match[0]["button"];
-                                } else {
-                                    speechOutput = "OK"
                                 }
 
-                                callback(sessionAttributes, buildSpeechletResponse(match[0]["button"], speechOutput, repromptText, shouldEndSession));
-                            });
-
+                            }
                         }
 
-                    }else{
+                        // Matched anything?
+                        if (match.length == 1) {
+                            if (match[0]['match']) {
 
-                        if(matchButton.length > 0) {
-                            callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                                // Cap at 10 repeats
+                                if (multiplier > 10) {
+                                    multiplier = 10
+                                }
 
-                            //if (device_brand) {
-                            //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " +  device_brand + " " + device_type + " <break time='1s'/>\n";
-                            //} else {
-                            //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " + device_type + "  <break time='1s'/>\n";
-                            //}
-                            //
-                            //var msg = '';
-                            //for (var x = 0; x < matchButton.length; x++) {
-                            //    msg += (x + 1) + "<break time='1s'/> " + matchButton[x]['brand'] + " " + matchButton[x]['device'] + "<break time='1s'/>\n";
-                            //}
-                            //
-                            //callback(sessionAttributes, buildSpeechletResponse("Error Pressing Button", speechOutput + msg, repromptText, shouldEndSession));
+                                // Repeat Signal
+                                var cmds = [];
+                                for (var y = 0; y < multiplier; y++) {
+                                    var cmd = match[0]['signal'][0];
+                                    var delay = Number(match[0]['signal'][1]) < 400 ? 400 : Number(match[0]['signal'][1]);
+                                    cmds.push(cmd + '\r', delay);
+                                }
 
-                        }else{
-                            callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                                // Remove trailing delay
+                                if (multiplier > 1) {
+                                    cmds.pop();
+                                }
+
+                                console.log(cmds);
+
+                                // Send Signals to Global Cache
+                                var itach = new Itach(myResponse.user.host, myResponse.user.port);
+                                itach.send(cmds, function (err, res) {
+
+                                    console.log(res);
+                                    console.log(err);
+
+                                    if (err) {
+                                        speechOutput = "Could not send signals to " + match[0]["device"] + "\nButton: " + match[0]["button"];
+                                    } else {
+                                        speechOutput = "OK"
+                                    }
+
+                                    callback(sessionAttributes, buildSpeechletResponse(match[0]["button"], speechOutput, repromptText, shouldEndSession));
+                                });
+
+                            }
+
+                        } else {
+
+                            if (matchButton.length > 0) {
+                                callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+
+                                //if (device_brand) {
+                                //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " +  device_brand + " " + device_type + " <break time='1s'/>\n";
+                                //} else {
+                                //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " + device_type + "  <break time='1s'/>\n";
+                                //}
+                                //
+                                //var msg = '';
+                                //for (var x = 0; x < matchButton.length; x++) {
+                                //    msg += (x + 1) + "<break time='1s'/> " + matchButton[x]['brand'] + " " + matchButton[x]['device'] + "<break time='1s'/>\n";
+                                //}
+                                //
+                                //callback(sessionAttributes, buildSpeechletResponse("Error Pressing Button", speechOutput + msg, repromptText, shouldEndSession));
+
+                            } else {
+                                callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                            }
+
                         }
-
                     }
 
                 }
@@ -601,6 +615,107 @@ function handleButtonPress(intent, session, callback){
                 speechOutput = error;
 
                 callback(sessionAttributes, buildSpeechletResponse("Error Pressing Button", speechOutput, repromptText, shouldEndSession));
+            }
+
+        });
+
+    }
+
+}
+
+/**
+ * Channels
+ *
+ * @param intent
+ * @param session
+ * @param callback
+ */
+function handleChannel(intent, session, callback){
+    var intent_name = intent.name;
+    var channel = intent.slots.channel.value;
+
+    var repromptText = "";
+    var sessionAttributes = {};
+    var shouldEndSession = true;
+    var speechOutput = "";
+
+    console.log(intent_name);
+    console.log(channel);
+
+    if(typeof session.user.accessToken == "undefined") {
+        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+    }else{
+
+        var url = TOKEN_URL + session.user.accessToken;
+        request(url, function (error, response, body) {
+
+            if (!error && response.statusCode == 200) {
+                var myResponse = JSON.parse(body);
+                if(myResponse.success == false){
+                    repromptText = "";
+                    sessionAttributes = {};
+                    speechOutput = "Your account link was removed from the companion website";
+
+                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                }else {
+
+                    // Check if channel Exist from the website
+                    channel = channel ? channel.trim().toLowerCase(): '';
+                    if(!myResponse.channels[channel]){
+
+                        // 4.3 Not relevant Response
+                        callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                    }else {
+
+                        var signals = myResponse.channels[channel];
+
+                        var max = 0;
+                        for (var k in signals) {
+                            if (signals.hasOwnProperty(k)) {
+                                ++max;
+                            }
+                        }
+
+                        // Create Command Pair
+                        var cmds = [];
+                        for (var i = 0; i < max; i++) {
+                            var cmd = signals[i][0];
+                            var delay = Number(signals[i][1]) < 400 ? 400 : Number(signals[i][1]);
+                            cmds.push(cmd + '\r', delay);
+                        }
+
+                        // Remove trailing delay
+                        if (max > 1) {
+                            cmds.pop();
+                        }
+
+                        console.log(cmds);
+
+                        // Send Signals to Global Cache
+                        var itach = new Itach(myResponse.user.host, myResponse.user.port);
+                        itach.send(cmds, function (err, res) {
+
+                            console.log(res);
+                            console.log(err);
+
+                            if (err) {
+                                speechOutput = "Could not send signals to " + channel;
+                            } else {
+                                speechOutput = "OK"
+                            }
+
+                            callback(sessionAttributes, buildSpeechletResponse(channel, speechOutput, repromptText, shouldEndSession));
+                        });
+
+                    }
+
+                }
+            }else{
+                repromptText = "";
+                sessionAttributes = {};
+                speechOutput = error;
+
+                callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", speechOutput, repromptText, shouldEndSession));
             }
 
         });
