@@ -5,18 +5,13 @@
 // ******************************************************************************** //
 /**
  * Eddy (Voice Remote) Skill for Amazon Alexa
- * v 0.8 - August 16, 2016
+ * v 0.9 - August 24, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
- * v 0.8 Updated Help SSML - August 16, 2016
- * v 0.7 Added Exit, Home, Live, and Plex Intents. Also Added Channels Intent. - August 14, 2016
- * v 0.6 Repeat Max of 10, Adjusted shouldEndSession - August 12, 2016
- * v 0.5 Added Device Intent
- * v 0.4 Re-created script, fixed issue with accessToken
- * v 0.3 Fixed HTTPS Issue
- * v 0.2 Added STOP / Cancel
- *
+ * Notes:
+ * Updated Namespace
+ * Added Debug to Website / Activity and Channel List and flipped shouldEndSession
  *
  * Test
  * -------------
@@ -37,9 +32,11 @@
 // **************************************** //
 
 /*  Global Cache */
+//noinspection JSUnresolvedFunction
 var Itach = require('./SimpleItach');
 
 /*  Request HTTP */
+//noinspection JSUnresolvedFunction
 var request = require('request');
 
 // **************************************** //
@@ -57,6 +54,11 @@ var TOKEN_URL = 'https://eddy.tinyelectrons.com/index.php/alexa/config?token=';
 
 // Route the incoming request based on type (LaunchRequest, IntentRequest,
 // etc.) The JSON body of the request is provided in the event parameter.
+/** @namespace event.session.application */
+/** @namespace event.session.application.applicationId */
+/** @namespace event.session */
+/** @namespace event.session.new */
+//noinspection JSUnresolvedVariable
 exports.handler = function (event, context) {
     try {
         console.log("event.session.application.applicationId=" + event.session.application.applicationId);
@@ -67,6 +69,7 @@ exports.handler = function (event, context) {
          */
 
         if (event.session.application.applicationId !== SKILL_ID) {
+            //noinspection JSUnresolvedFunction
             context.fail("Invalid Application ID");
         }
 
@@ -78,19 +81,23 @@ exports.handler = function (event, context) {
             onLaunch(event.request,
                 event.session,
                 function callback(sessionAttributes, speechletResponse) {
+                    //noinspection JSUnresolvedFunction
                     context.succeed(buildResponse(sessionAttributes, speechletResponse));
                 });
         } else if (event.request.type === "IntentRequest") {
             onIntent(event.request,
                 event.session,
                 function callback(sessionAttributes, speechletResponse) {
+                    //noinspection JSUnresolvedFunction
                     context.succeed(buildResponse(sessionAttributes, speechletResponse));
                 });
         } else if (event.request.type === "SessionEndedRequest") {
             onSessionEnded(event.request, event.session);
+            //noinspection JSUnresolvedFunction
             context.succeed();
         }
     } catch (e) {
+        //noinspection JSUnresolvedFunction
         context.fail("Exception: " + e);
     }
 };
@@ -113,6 +120,7 @@ function onLaunch(launchRequest, session, callback) {
     getWelcomeResponse(callback);
 }
 
+/** @namespace intentRequest.intent */
 /**
  * Called when the user specifies an intent for this skill.
  */
@@ -145,6 +153,7 @@ function onIntent(intentRequest, session, callback) {
     }
 }
 
+/** @namespace session.sessionId */
 /**
  * Called when the user ends the session.
  * Is not called when the skill returns shouldEndSession=true.
@@ -163,13 +172,12 @@ function onSessionEnded(sessionEndedRequest, session) {
  * @param callback
  */
 function getWelcomeResponse(callback) {
-    var sessionAttributes = {};
     var cardTitle = 'Welcome';
     var shouldEndSession = false;
     var speechOutput = "Welcome to Voice Remote, your Home IR Remote Companion.";
     var repromptText = "You can say, ask Voice Remote What are my Activities or tell Voice Remote to Press the Power button on my TV. What do you you want to do?";
 
-    sessionAttributes = {
+    var sessionAttributes = {
         "speechOutput": speechOutput,
         "repromptText": repromptText
     };
@@ -177,7 +185,9 @@ function getWelcomeResponse(callback) {
     callback(sessionAttributes, buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
 }
 
-/** 
+/** @namespace myResponse.activities */
+/** @namespace myResponse.activities.error */
+/**
  * Activity List
  * 
  * @param intent
@@ -187,13 +197,15 @@ function getWelcomeResponse(callback) {
 function handleActivitiesList(intent, session, callback) {
     var repromptText = "" ;
     var sessionAttributes = {};
-    var shouldEndSession = true;
+    var shouldEndSession = false;
     var speechOutput = "";
-
     var size = 0;
     var myActivities;
 
+    console.log(intent.name);
+
     if(typeof session.user.accessToken == "undefined") {
+        shouldEndSession = true;
         callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
     }else{
 
@@ -204,8 +216,8 @@ function handleActivitiesList(intent, session, callback) {
                 var myResponse = JSON.parse(body);
                 if(myResponse.success == false){
                     repromptText = "";
-                    sessionAttributes = {};
                     speechOutput = "Your account link was removed from the companion website";
+                    shouldEndSession = true;
 
                     callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
                 }else {
@@ -215,14 +227,16 @@ function handleActivitiesList(intent, session, callback) {
 
                     for (var k in list) {
                         if (k !== 'error') {
-                            var currentActivity = myResponse.activities.error[k];
-                            if (myActivities) {
-                                lastActivity = currentActivity['title'];
-                                myActivities = myActivities + ", " + currentActivity['title'];
-                            } else {
-                                myActivities = currentActivity['title'];
+                            if(myResponse.activities.error.hasOwnProperty(k)) {
+                                var currentActivity = myResponse.activities.error[k];
+                                if (myActivities) {
+                                    lastActivity = currentActivity['title'];
+                                    myActivities = myActivities + ", " + currentActivity['title'];
+                                } else {
+                                    myActivities = currentActivity['title'];
+                                }
+                                size++;
                             }
-                            size++;
                         }
                     }
 
@@ -239,12 +253,15 @@ function handleActivitiesList(intent, session, callback) {
                         }
                     }
 
-                    callback(sessionAttributes, buildSpeechletResponse("Activity List", speechOutput, repromptText, shouldEndSession));
+                    var response = buildSpeechletResponse("Activity List", speechOutput, repromptText, shouldEndSession);
+                    if(myResponse.user.debug) {console.log(response);}
+                    callback(sessionAttributes, response);
                 }
             }else{
                 repromptText = "";
                 sessionAttributes = {};
                 speechOutput = error;
+                shouldEndSession = true;
 
                 callback(sessionAttributes, buildSpeechletResponse(error, speechOutput, repromptText, shouldEndSession));
             }
@@ -255,6 +272,7 @@ function handleActivitiesList(intent, session, callback) {
 
 }
 
+/** @namespace myResponse.channel_lists */
 /**
  * Activity List
  *
@@ -265,25 +283,29 @@ function handleActivitiesList(intent, session, callback) {
 function handleChannelList(intent, session, callback) {
     var repromptText = "" ;
     var sessionAttributes = {};
-    var shouldEndSession = true;
+    var shouldEndSession = false;
     var speechOutput = "";
-
     var size = 0;
     var myChannel;
 
+    console.log(intent.name);
+
     if(typeof session.user.accessToken == "undefined") {
+        shouldEndSession = true;
         callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
         request(url, function (error, response, body) {
 
+            var currentChannel;
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
                 if(myResponse.success == false){
                     repromptText = "";
                     sessionAttributes = {};
                     speechOutput = "Your account link was removed from the companion website";
+                    shouldEndSession = true;
 
                     callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
                 }else {
@@ -293,7 +315,7 @@ function handleChannelList(intent, session, callback) {
 
                     for (var k in list) {
                         if (k !== 'error') {
-                            var currentChannel = k;
+                            currentChannel = k;
                             if (myChannel) {
                                 lastChannel = currentChannel;
                                 myChannel = myChannel + ", " + currentChannel;
@@ -317,12 +339,15 @@ function handleChannelList(intent, session, callback) {
                         }
                     }
 
-                    callback(sessionAttributes, buildSpeechletResponse("Channel List", speechOutput, repromptText, shouldEndSession));
+                    var response = buildSpeechletResponse("Channel List", speechOutput, repromptText, shouldEndSession)
+                    if(myResponse.user.debug) {console.log(response);}
+                    callback(sessionAttributes, response);
                 }
             }else{
                 repromptText = "";
                 sessionAttributes = {};
                 speechOutput = error;
+                shouldEndSession = true;
 
                 callback(sessionAttributes, buildSpeechletResponse(error, speechOutput, repromptText, shouldEndSession));
             }
@@ -430,6 +455,13 @@ function handleActivity(intent, session, callback){
 
 }
 
+/** @namespace myResponse.devices */
+/** @namespace myResponse.success */
+/** @namespace session.user.accessToken */
+/** @namespace intent.slots */
+/** @namespace intent.slots.device_type */
+/** @namespace intent.slots.button_name */
+/** @namespace intent.slots.multiplier */
 /**
  * Devices
  *
@@ -482,6 +514,7 @@ function handleButtonPress(intent, session, callback){
                         var match = [];
                         var matchButton = [];
                         var exactMatch = false;
+                        var obj = {};
 
                         // Check Current Device
                         for (var current_device in myResponse.devices) {
@@ -492,7 +525,6 @@ function handleButtonPress(intent, session, callback){
                             var brands = myResponse.devices[current_device];
                             for (var current_brand in brands) {
                                 if (!brands.hasOwnProperty(current_brand)) continue;
-
 
                                 // Loop through Buttons
                                 var button = brands[current_brand];
@@ -509,15 +541,16 @@ function handleButtonPress(intent, session, callback){
                                     }
 
                                     // Match Devices
+                                    var tmp_current_brand;
                                     if (device_type) {
 
                                         // Match Brand
                                         if (device_brand) {
-                                            var tmp_current_brand = current_brand.trim().toLowerCase();
+                                            tmp_current_brand = current_brand.trim().toLowerCase();
                                             if (tmp_current_brand.indexOf(device_brand) > -1) {
                                                 if (button_found && !exactMatch) {
                                                     // Device + Brand + Button Found
-                                                    var obj = {
+                                                    obj = {
                                                         match: true,
                                                         device_found: true,
                                                         brand_found: true,
@@ -533,7 +566,7 @@ function handleButtonPress(intent, session, callback){
                                             } else {
                                                 // Couldn't match Brand?
                                                 if (button_found && !exactMatch) {
-                                                    var obj = {
+                                                    obj = {
                                                         match: true,
                                                         device_found: false,
                                                         brand_found: true,
@@ -552,7 +585,7 @@ function handleButtonPress(intent, session, callback){
                                             if (tmp_current_device.indexOf(device_type) > -1) {
                                                 if (button_found && !exactMatch) {
                                                     // Device + Button Found
-                                                    var obj = {
+                                                    obj = {
                                                         match: true,
                                                         device_found: true,
                                                         brand_found: false,
@@ -567,7 +600,7 @@ function handleButtonPress(intent, session, callback){
                                             } else {
                                                 if (button_found && !exactMatch) {
                                                     // Brand + Button Found
-                                                    var obj = {
+                                                    obj = {
                                                         match: true,
                                                         device_found: false,
                                                         brand_found: false,
@@ -583,11 +616,11 @@ function handleButtonPress(intent, session, callback){
                                         }
 
                                     } else {
-                                        var tmp_current_brand = current_brand.trim().toLowerCase();
+                                        tmp_current_brand = current_brand.trim().toLowerCase();
                                         if (tmp_current_brand.indexOf(device_brand) > -1) {
                                             if (button_found && !exactMatch) {
                                                 // Brand + Button Found
-                                                var obj = {
+                                                obj = {
                                                     match: true,
                                                     device_found: false,
                                                     brand_found: true,
@@ -602,7 +635,7 @@ function handleButtonPress(intent, session, callback){
                                             }
                                         } else {
                                             if (button_found && !exactMatch) {
-                                                var obj = {
+                                                obj = {
                                                     match: true,
                                                     device_found: false,
                                                     brand_found: true,
@@ -668,20 +701,6 @@ function handleButtonPress(intent, session, callback){
 
                             if (matchButton.length > 0) {
                                 callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
-
-                                //if (device_brand) {
-                                //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " +  device_brand + " " + device_type + " <break time='1s'/>\n";
-                                //} else {
-                                //    speechOutput = "I found " + matchButton.length + " matches for pressing the " + button_name + " on your " + device_type + "  <break time='1s'/>\n";
-                                //}
-                                //
-                                //var msg = '';
-                                //for (var x = 0; x < matchButton.length; x++) {
-                                //    msg += (x + 1) + "<break time='1s'/> " + matchButton[x]['brand'] + " " + matchButton[x]['device'] + "<break time='1s'/>\n";
-                                //}
-                                //
-                                //callback(sessionAttributes, buildSpeechletResponse("Error Pressing Button", speechOutput + msg, repromptText, shouldEndSession));
-
                             } else {
                                 callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
                             }
@@ -704,6 +723,8 @@ function handleButtonPress(intent, session, callback){
 
 }
 
+/** @namespace myResponse.channels */
+/** @namespace intent.slots.channel */
 /**
  * Channels
  *
@@ -830,6 +851,7 @@ function handleGetHelpRequest(intent, session, callback) {
         repromptText = "What do you want to do?";
     var shouldEndSession = false;
 
+    console.log(intent.name);
     callback(session.attributes, buildSpeechletResponseWithoutCardSSML(speechOutput, repromptText, shouldEndSession));
 }
 
@@ -841,6 +863,7 @@ function handleGetHelpRequest(intent, session, callback) {
  * @param callback
  */
 function handleFinishSessionRequest(intent, session, callback) {
+    console.log(intent.name);
     callback(session.attributes, buildSpeechletResponseWithoutCard("Thanks for using Voice Remote!", "", true));
 }
 
@@ -940,7 +963,7 @@ function buildResponse(sessionAttributes, speechletResponse) {
 /**
  *
  * @param output
- * @returns {{version: string, response: {outputSpeech: {type: string, text: *}, card: {type: string}, shouldEndSession: boolean}}}
+ * @returns {{outputSpeech: {type: string, text: *}, card: {type: string}, shouldEndSession: boolean}}
  */
 function buildLinkCard (output) {
     return {
