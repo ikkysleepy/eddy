@@ -1,3 +1,4 @@
+ * v 0.9 Updated Namespace, Added Debug to Website / Activity and Channel List and flipped shouldEndSession
  * v 0.8 Updated Help SSML - August 16, 2016
  * v 0.7 Added Exit, Home, Live, and Plex Intents. Also Added Channels Intent. - August 14, 2016
  * v 0.6 Repeat Max of 10, Adjusted shouldEndSession - August 12, 2016

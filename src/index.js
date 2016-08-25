@@ -5,13 +5,12 @@
 // ******************************************************************************** //
 /**
  * Eddy (Voice Remote) Skill for Amazon Alexa
- * v 0.9 - August 24, 2016
+ * v 0.10 - August 24, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
  * Notes:
- * Updated Namespace
- * Added Debug to Website / Activity and Channel List and flipped shouldEndSession
+ * Added Server Timeout
  *
  * Test
  * -------------
@@ -47,6 +46,7 @@ var request = require('request');
 var intents = ["WatchTVIntent","WatchSportsIntent","ExitIntent","HomeIntent", "LiveIntent","WatchMyShowIntent","WatchMovieIntent","ListenMusicIntnet","NetflixIntent","PlexIntent","BedIntent","MorningIntent","NightIntent","SonosIntent","DVDIntent","AppleTVIntent","CableIntent","FireTVIntent","RokuIntent","GameIntent","PSThreeIntent","PSFourIntent","WiiIntent","XboxIntent","TVOnIntent","AudioOnIntent","TivoOnToggleIntent","DVROnToggleIntent","DVDOnToggleIntent","BluerayOnToggleIntent","TVOffIntent","AudioOffIntent","TivoOffToggleIntent","DVROffToggleIntent","DVDOffToggleIntent","BluerayOffToggleIntent","AllOffIntent","IncreaseVolumeIntent","DecreaseVolumeIntent","NextChannelIntent","PreviousChannelIntent","GoBackIntent","PauseIntent","PlayIntent","MuteIntent","FastForwardIntent","RewindIntent","NextIntent","SkipIntent"];
 var SKILL_ID = "amzn1.echo-sdk-ams.app.194b7d6a-18e3-4c94-b4c9-6d921bd21a6d";
 var TOKEN_URL = 'https://eddy.tinyelectrons.com/index.php/alexa/config?token=';
+var SERVER_TIMEOUT = 4000;
 
 // ******************************************************************************** //
 //                                      Core                                        //
@@ -210,7 +210,7 @@ function handleActivitiesList(intent, session, callback) {
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
-        request(url, function (error, response, body) {
+        request(url, {timeout: SERVER_TIMEOUT}, function (error, response, body) {
 
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
@@ -263,7 +263,11 @@ function handleActivitiesList(intent, session, callback) {
                 speechOutput = error;
                 shouldEndSession = true;
 
-                callback(sessionAttributes, buildSpeechletResponse(error, speechOutput, repromptText, shouldEndSession));
+                if (error.code=== 'ETIMEDOUT') {
+                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                }else{
+                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                }
             }
 
         });
@@ -296,7 +300,7 @@ function handleChannelList(intent, session, callback) {
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
-        request(url, function (error, response, body) {
+        request(url,  {timeout: SERVER_TIMEOUT}, function (error, response, body) {
 
             var currentChannel;
             if (!error && response.statusCode == 200) {
@@ -349,7 +353,11 @@ function handleChannelList(intent, session, callback) {
                 speechOutput = error;
                 shouldEndSession = true;
 
-                callback(sessionAttributes, buildSpeechletResponse(error, speechOutput, repromptText, shouldEndSession));
+                if (error.code=== 'ETIMEDOUT') {
+                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                }else{
+                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                }
             }
 
         });
@@ -379,7 +387,7 @@ function handleActivity(intent, session, callback){
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
-        request(url, function (error, response, body) {
+        request(url,  {timeout: SERVER_TIMEOUT}, function (error, response, body) {
 
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
@@ -446,7 +454,11 @@ function handleActivity(intent, session, callback){
                 sessionAttributes = {};
                 speechOutput = error;
 
-                callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", speechOutput, repromptText, shouldEndSession));
+                if (error.code=== 'ETIMEDOUT') {
+                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                }else{
+                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                }
             }
 
         });
@@ -487,7 +499,7 @@ function handleButtonPress(intent, session, callback){
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
-        request(url, function (error, response, body) {
+        request(url,  {timeout: SERVER_TIMEOUT}, function (error, response, body) {
 
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
@@ -714,7 +726,11 @@ function handleButtonPress(intent, session, callback){
                 sessionAttributes = {};
                 speechOutput = error;
 
-                callback(sessionAttributes, buildSpeechletResponse("Error Pressing Button", speechOutput, repromptText, shouldEndSession));
+                if (error.code=== 'ETIMEDOUT') {
+                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                }else{
+                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                }
             }
 
         });
@@ -749,7 +765,7 @@ function handleChannel(intent, session, callback){
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
-        request(url, function (error, response, body) {
+        request(url,  {timeout: SERVER_TIMEOUT}, function (error, response, body) {
 
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
@@ -817,7 +833,11 @@ function handleChannel(intent, session, callback){
                 sessionAttributes = {};
                 speechOutput = error;
 
-                callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", speechOutput, repromptText, shouldEndSession));
+                if (error.code=== 'ETIMEDOUT') {
+                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                }else{
+                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                }
             }
 
         });

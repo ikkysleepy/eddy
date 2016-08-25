@@ -170,8 +170,3 @@ ChannelListIntent List my Channels
 ChannelListIntent What are my Channels
 WatchSportsIntent Watch Sports
 WatchSportsIntent Sports
-WatchSportsIntent RAIDERS
-WatchSportsIntent Watch Football
-WatchSportsIntent Watch Baseball
-WatchSportsIntent Watch Soccer
-WatchSportsIntent Watch Olypics
