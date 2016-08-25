@@ -241,6 +241,7 @@ function handleActivitiesList(intent, session, callback) {
                     }
 
                     if (size == 0) {
+                        shouldEndSession = true;
                         speechOutput = "No Activities Found. Please Add Activities on eddy dot tiny electrons dot com";
                     } else {
                         shouldEndSession = false;
@@ -331,6 +332,7 @@ function handleChannelList(intent, session, callback) {
                     }
 
                     if (size == 0) {
+                        shouldEndSession = true;
                         speechOutput = "No Channels Found. Please Add Channels on eddy dot tiny electrons dot com";
                     } else {
                         shouldEndSession = false;
