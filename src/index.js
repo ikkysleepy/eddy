@@ -5,12 +5,12 @@
 // ******************************************************************************** //
 /**
  * Eddy (Voice Remote) Skill for Amazon Alexa
- * v 0.10 - August 24, 2016
+ * v 0.11 - August 24, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
  * Notes:
- * Added Server Timeout
+ * Fixed Reprompt Issues and Channel is blank or bad
  *
  * Test
  * -------------
@@ -246,11 +246,12 @@ function handleActivitiesList(intent, session, callback) {
                     } else {
                         shouldEndSession = false;
                         if (size == 1) {
-                            speechOutput = "Your Activity is: " + myActivities;
-                            repromptText = "What Activity do you want to do?";
+                            speechOutput = "Your Activity is: " + myActivities + ". What Activity do you want to go to?";
+                            repromptText = "You can call an Activity by saying the Activity name, such as " + myActivities;
+
                         } else {
-                            speechOutput = "Your Activities are: " + myActivities.replace(lastActivity, "and " + lastActivity);
-                            repromptText = "What Activity do you want to do?";
+                            speechOutput = "Your Activities are: " + myActivities.replace(lastActivity, "and " + lastActivity) + ". What Activity do you want to go to?";
+                            repromptText = "You can call an Activity by saying the Activity name, such as " + lastActivity;
                         }
                     }
 
@@ -337,11 +338,11 @@ function handleChannelList(intent, session, callback) {
                     } else {
                         shouldEndSession = false;
                         if (size == 1) {
-                            speechOutput = "Your Channel is: " + myChannel;
-                            repromptText = "What Channel do you want to go to?";
+                            speechOutput = "Your Channel is: " + myChannel +". What Channel do you want to go to?";
+                            repromptText = "You can go to a channel by saying, Go to Channel " + myChannel;
                         } else {
-                            speechOutput = "Your Channels are: " + myChannel.replace(lastChannel, "and " + lastChannel);
-                            repromptText = "What Channel do you want to go to?";
+                            speechOutput = "Your Channels are: " + myChannel.replace(lastChannel, "and " + lastChannel) +". What Channel do you want to go to?";
+                            repromptText = "You can go to a channel by saying, Go to Channel " + lastChannel;
                         }
                     }
 
@@ -783,8 +784,18 @@ function handleChannel(intent, session, callback){
                     channel = channel ? channel.trim().toLowerCase(): '';
                     if(!myResponse.channels[channel]){
 
-                        // 4.3 Not relevant Response
-                        callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
+                        // Blank or Bad Channel
+                        shouldEndSession = false;
+                        if(channel == "" || typeof intent.slots.channel.value == "undefined"){
+                            speechOutput = "I'm not sure what Channel you want to go to, please try again";
+                            repromptText = "I'm not sure what Channel you want to go to. You can say go to Channel ABS?";
+                            callback(sessionAttributes, buildSpeechletResponse("No Channel Specified", speechOutput, repromptText, shouldEndSession));
+                        }else{
+                            speechOutput = channel + " channel was not found on the companion website. Try another channel";
+                            repromptText = "What Channel do you want to go to?";
+                            callback(sessionAttributes, buildSpeechletResponse("Channel Not Found", speechOutput, repromptText, shouldEndSession));
+                        }
+
                     }else {
 
                         var signals = myResponse.channels[channel];
