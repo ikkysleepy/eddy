@@ -5,12 +5,12 @@
 // ******************************************************************************** //
 /**
  * Eddy (Voice Remote) Skill for Amazon Alexa
- * v 0.11 - August 24, 2016
+ * v 0.12 - August 24, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
  * Notes:
- * Fixed Reprompt Issues and Channel is blank or bad
+ * Moved Speech Text Outside Functions & fixed Reprompt
  *
  * Test
  * -------------
@@ -47,6 +47,78 @@ var intents = ["WatchTVIntent","WatchSportsIntent","ExitIntent","HomeIntent", "L
 var SKILL_ID = "amzn1.echo-sdk-ams.app.194b7d6a-18e3-4c94-b4c9-6d921bd21a6d";
 var TOKEN_URL = 'https://eddy.tinyelectrons.com/index.php/alexa/config?token=';
 var SERVER_TIMEOUT = 4000;
+
+// **************************************** //
+//             Speech Values                //
+// **************************************** //
+// Welcome
+var welcomeCard = "Welcome";
+var welcomeSpeech =  "Welcome to Voice Remote, your Home IR Remote Companion. You can ask Voice Remote, What are my Activities. What do you you want to do?";
+var welcomeSpeechReprompt = "To hear a full list of commands you can say, please say Help";
+
+// Activity List
+var activityListCard = "Activity List";
+var activityListOneSpeech = "Your Activity is: ";
+var activityListMultipleSpeech = "Your Activities are: ";
+var activityListPostSpeech = ". What Activity do you want to go to?";
+var activityListNoneSpeech  = "No Activities Found. Please Add Activities on eddy dot tiny electrons dot com";
+var activityListSpeechReprompt = "You can call an Activity by saying the Activity name, such as ";
+
+// Activity
+// Ok
+
+// Channel List
+var channelListCard = "Channel List";
+var channelListOneSpeech = "Your Channel is: ";
+var channelListSpeechReprompt = "You can go to a channel by saying, Go to Channel ";
+var channelListMultipleSpeech = "Your Channels are: ";
+var channelListPostSpeech = ". What Channel do you want to go to?";
+var channelListNoneSpeech = "No Channels Found. Please Add Channels on eddy dot tiny electrons dot com";
+
+// Channel Blank
+var channelNullCard = "No Channel Specified";
+var channelNullSpeech = "I'm not sure what Channel you want to go to. You can say go to Channel ABC?";
+var channelNullSpeechReprompt = "I'm not sure what Channel you want to go to, please try again";
+
+// Channel Bad
+var channelBadCard = "Channel Not Found";
+var channelBadSpeech = " channel was not found on the companion website. Try another channel";
+var channelBadSpeechReprompt = "What Channel do you want to go to?";
+
+// General Error Messages
+var noSignalSpeech = "Could not send signals to ";
+var okSpeech = "OK";
+var accountNotLinkedSpeech  = "Your account is not linked. Please use the Alexa App to link the account.";
+
+var serverTimeOutCard = "Server Timed Out";
+var serverTimeOutSpeech = "The Companion website timed out. Please try again";
+
+var accountRemovedCard = "Account Removed";
+var accountRemovedSpeech = "Your account link was removed from the companion website";
+
+var errorCard = "Error Getting Data";
+var errorSpeech = "Error Getting Data. Please try again";
+
+// Help Text
+var helpSpeech = "<speak>There are 5 core commands you can say: <break time='1s'/>\
+                        1 <break time='1s'/> What are my Activities? <break time='1s'/> \
+                        2 <break time='1s'/> Call Activity by name, such as  <break time='1s'/> \
+                           Watch TV or  <break time='1s'/>\
+                           Increase Volume  <break time='1s'/>\
+                        3 <break time='1s'/> Press any button on your device, by saying  <break time='1s'/> \
+                           Press Volume button on my Soundbar  <break time='1s'/>  or \
+                           Press Volume button on my Sony 5 Times <break time='1s'/> \
+                        4 <break time='1s'/> Get a list of Channels by saying  <break time='1s'/> \
+                           List My Channels<break time='1s'/> \
+                        and the last command you can say is  <break time='1s'/> \
+                        5 <break time='1s'/> Change Channel, by saying <break time='1s'/> \
+                            Go to ABC <break time='1s'/> or \
+                            <break time='1s'/> Go to Fox Channel\
+                            <break time = '1s'/>\
+                            What do you want to do?</speak>";
+var helpSpeechReprompt = "<speak>What do you want to do?</speak>";
+
+var finishCard = "Thanks for using Voice Remote!";
 
 // ******************************************************************************** //
 //                                      Core                                        //
@@ -172,15 +244,11 @@ function onSessionEnded(sessionEndedRequest, session) {
  * @param callback
  */
 function getWelcomeResponse(callback) {
-    var cardTitle = 'Welcome';
+    var cardTitle = welcomeCard;
+    var speechOutput = welcomeSpeech;
+    var repromptText = welcomeSpeechReprompt;
     var shouldEndSession = false;
-    var speechOutput = "Welcome to Voice Remote, your Home IR Remote Companion.";
-    var repromptText = "You can say, ask Voice Remote What are my Activities or tell Voice Remote to Press the Power button on my TV. What do you you want to do?";
-
-    var sessionAttributes = {
-        "speechOutput": speechOutput,
-        "repromptText": repromptText
-    };
+    var sessionAttributes = {};
 
     callback(sessionAttributes, buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
 }
@@ -197,7 +265,7 @@ function getWelcomeResponse(callback) {
 function handleActivitiesList(intent, session, callback) {
     var repromptText = "" ;
     var sessionAttributes = {};
-    var shouldEndSession = false;
+    var shouldEndSession = true;
     var speechOutput = "";
     var size = 0;
     var myActivities;
@@ -205,8 +273,7 @@ function handleActivitiesList(intent, session, callback) {
     console.log(intent.name);
 
     if(typeof session.user.accessToken == "undefined") {
-        shouldEndSession = true;
-        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+        callback(sessionAttributes,buildLinkCard(accountNotLinkedSpeech));
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
@@ -215,11 +282,9 @@ function handleActivitiesList(intent, session, callback) {
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
                 if(myResponse.success == false){
-                    repromptText = "";
-                    speechOutput = "Your account link was removed from the companion website";
-                    shouldEndSession = true;
+                    speechOutput = accountRemovedSpeech;
 
-                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(accountRemovedCard, speechOutput, repromptText, shouldEndSession));
                 }else {
                     // Loop through the list
                     var list = myResponse.activities;
@@ -241,34 +306,29 @@ function handleActivitiesList(intent, session, callback) {
                     }
 
                     if (size == 0) {
-                        shouldEndSession = true;
-                        speechOutput = "No Activities Found. Please Add Activities on eddy dot tiny electrons dot com";
+                        speechOutput = activityListNoneSpeech;
                     } else {
                         shouldEndSession = false;
                         if (size == 1) {
-                            speechOutput = "Your Activity is: " + myActivities + ". What Activity do you want to go to?";
-                            repromptText = "You can call an Activity by saying the Activity name, such as " + myActivities;
+                            speechOutput = activityListOneSpeech + myActivities + activityListPostSpeech;
+                            repromptText = activityListSpeechReprompt + myActivities;
 
                         } else {
-                            speechOutput = "Your Activities are: " + myActivities.replace(lastActivity, "and " + lastActivity) + ". What Activity do you want to go to?";
-                            repromptText = "You can call an Activity by saying the Activity name, such as " + lastActivity;
+                            speechOutput = activityListMultipleSpeech + myActivities.replace(lastActivity, "and " + lastActivity) + activityListPostSpeech;
+                            repromptText = activityListSpeechReprompt + lastActivity;
                         }
                     }
 
-                    var response = buildSpeechletResponse("Activity List", speechOutput, repromptText, shouldEndSession);
+                    var response = buildSpeechletResponse(activityListCard, speechOutput, repromptText, shouldEndSession);
                     if(myResponse.user.debug) {console.log(response);}
                     callback(sessionAttributes, response);
                 }
             }else{
-                repromptText = "";
-                sessionAttributes = {};
-                speechOutput = error;
-                shouldEndSession = true;
-
+                
                 if (error.code=== 'ETIMEDOUT') {
-                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(serverTimeOutCard, serverTimeOutSpeech, repromptText, shouldEndSession));
                 }else{
-                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(errorCard, errorSpeech, repromptText, shouldEndSession));
                 }
             }
 
@@ -289,7 +349,7 @@ function handleActivitiesList(intent, session, callback) {
 function handleChannelList(intent, session, callback) {
     var repromptText = "" ;
     var sessionAttributes = {};
-    var shouldEndSession = false;
+    var shouldEndSession = true;
     var speechOutput = "";
     var size = 0;
     var myChannel;
@@ -297,8 +357,7 @@ function handleChannelList(intent, session, callback) {
     console.log(intent.name);
 
     if(typeof session.user.accessToken == "undefined") {
-        shouldEndSession = true;
-        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+        callback(sessionAttributes,buildLinkCard(accountNotLinkedSpeech));
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
@@ -308,12 +367,9 @@ function handleChannelList(intent, session, callback) {
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
                 if(myResponse.success == false){
-                    repromptText = "";
-                    sessionAttributes = {};
-                    speechOutput = "Your account link was removed from the companion website";
-                    shouldEndSession = true;
-
-                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                    speechOutput = accountRemovedSpeech;
+                    
+                    callback(sessionAttributes, buildSpeechletResponse(accountRemovedCard, speechOutput, repromptText, shouldEndSession));
                 }else {
                     // Loop through the list
                     var list = myResponse.channel_lists;
@@ -333,33 +389,28 @@ function handleChannelList(intent, session, callback) {
                     }
 
                     if (size == 0) {
-                        shouldEndSession = true;
-                        speechOutput = "No Channels Found. Please Add Channels on eddy dot tiny electrons dot com";
+                        speechOutput = channelListNoneSpeech;
                     } else {
                         shouldEndSession = false;
                         if (size == 1) {
-                            speechOutput = "Your Channel is: " + myChannel +". What Channel do you want to go to?";
-                            repromptText = "You can go to a channel by saying, Go to Channel " + myChannel;
+                            speechOutput = channelListOneSpeech + myChannel + channelListPostSpeech;
+                            repromptText = channelListSpeechReprompt + myChannel;
                         } else {
-                            speechOutput = "Your Channels are: " + myChannel.replace(lastChannel, "and " + lastChannel) +". What Channel do you want to go to?";
-                            repromptText = "You can go to a channel by saying, Go to Channel " + lastChannel;
+                            speechOutput = channelListMultipleSpeech + myChannel.replace(lastChannel, "and " + lastChannel) + channelListPostSpeech;
+                            repromptText = channelListSpeechReprompt + lastChannel;
                         }
                     }
 
-                    var response = buildSpeechletResponse("Channel List", speechOutput, repromptText, shouldEndSession)
+                    var response = buildSpeechletResponse(channelListCard, speechOutput, repromptText, shouldEndSession)
                     if(myResponse.user.debug) {console.log(response);}
                     callback(sessionAttributes, response);
                 }
             }else{
-                repromptText = "";
-                sessionAttributes = {};
-                speechOutput = error;
-                shouldEndSession = true;
 
                 if (error.code=== 'ETIMEDOUT') {
-                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(serverTimeOutCard, serverTimeOutSpeech, repromptText, shouldEndSession));
                 }else{
-                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(errorCard, errorSpeech, repromptText, shouldEndSession));
                 }
             }
 
@@ -386,7 +437,7 @@ function handleActivity(intent, session, callback){
     console.log(intent_name);
 
     if(typeof session.user.accessToken == "undefined") {
-        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+        callback(sessionAttributes,buildLinkCard(accountNotLinkedSpeech));
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
@@ -395,11 +446,9 @@ function handleActivity(intent, session, callback){
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
                 if(myResponse.success == false){
-                    repromptText = "";
-                    sessionAttributes = {};
-                    speechOutput = "Your account link was removed from the companion website";
+                    speechOutput = accountRemovedSpeech;
 
-                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(accountRemovedCard, speechOutput, repromptText, shouldEndSession));
                 }else {
 
                     // Check if Intent Exist from the website
@@ -441,9 +490,9 @@ function handleActivity(intent, session, callback){
                             console.log(err);
 
                             if (err) {
-                                speechOutput = "Could not send signals to " + myActivity["title"] + "\nSignals: " + myActivity["count"];
+                                speechOutput = noSignalSpeech + myActivity["title"] + "\nSignals: " + myActivity["count"];
                             } else {
-                                speechOutput = "OK"
+                                speechOutput = okSpeech
                             }
 
                             callback(sessionAttributes, buildSpeechletResponse(myActivity["title"], speechOutput, repromptText, shouldEndSession));
@@ -453,14 +502,10 @@ function handleActivity(intent, session, callback){
 
                 }
             }else{
-                repromptText = "";
-                sessionAttributes = {};
-                speechOutput = error;
-
                 if (error.code=== 'ETIMEDOUT') {
-                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(serverTimeOutCard, serverTimeOutSpeech, repromptText, shouldEndSession));
                 }else{
-                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(errorCard, errorSpeech, repromptText, shouldEndSession));
                 }
             }
 
@@ -498,7 +543,7 @@ function handleButtonPress(intent, session, callback){
     var speechOutput = "";
 
     if(typeof session.user.accessToken == "undefined") {
-        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+        callback(sessionAttributes,buildLinkCard(accountNotLinkedSpeech));
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
@@ -507,16 +552,13 @@ function handleButtonPress(intent, session, callback){
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
                 if(myResponse.success == false){
-                    repromptText = "";
-                    sessionAttributes = {};
-                    speechOutput = "Your account link was removed from the companion website";
+                    speechOutput = accountRemovedSpeech;
 
-                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(accountRemovedCard, speechOutput, repromptText, shouldEndSession));
                 }else {
 
                     // There needs to be a button
                     if(typeof button_name == "undefined") {
-
                         // 4.3 Not relevant Response
                         callback(session.attributes, buildSpeechletResponseWithoutCard("", "", true));
                     }else {
@@ -702,9 +744,9 @@ function handleButtonPress(intent, session, callback){
                                     console.log(err);
 
                                     if (err) {
-                                        speechOutput = "Could not send signals to " + match[0]["device"] + "\nButton: " + match[0]["button"];
+                                        speechOutput = noSignalSpeech + match[0]["device"] + "\nButton: " + match[0]["button"];
                                     } else {
-                                        speechOutput = "OK"
+                                        speechOutput = okSpeech
                                     }
 
                                     callback(sessionAttributes, buildSpeechletResponse(match[0]["button"], speechOutput, repromptText, shouldEndSession));
@@ -725,14 +767,11 @@ function handleButtonPress(intent, session, callback){
 
                 }
             }else{
-                repromptText = "";
-                sessionAttributes = {};
-                speechOutput = error;
 
                 if (error.code=== 'ETIMEDOUT') {
-                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(serverTimeOutCard, serverTimeOutSpeech, repromptText, shouldEndSession));
                 }else{
-                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(errorCard, errorSpeech, repromptText, shouldEndSession));
                 }
             }
 
@@ -764,7 +803,7 @@ function handleChannel(intent, session, callback){
     console.log(channel);
 
     if(typeof session.user.accessToken == "undefined") {
-        callback(sessionAttributes,buildLinkCard('Your account is not linked. Please use the Alexa App to link the account.'));
+        callback(sessionAttributes,buildLinkCard(accountNotLinkedSpeech));
     }else{
 
         var url = TOKEN_URL + session.user.accessToken;
@@ -773,11 +812,9 @@ function handleChannel(intent, session, callback){
             if (!error && response.statusCode == 200) {
                 var myResponse = JSON.parse(body);
                 if(myResponse.success == false){
-                    repromptText = "";
-                    sessionAttributes = {};
-                    speechOutput = "Your account link was removed from the companion website";
+                    speechOutput = accountRemovedSpeech;
 
-                    callback(sessionAttributes, buildSpeechletResponse("Account Removed", speechOutput, repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(accountRemovedCard, speechOutput, repromptText, shouldEndSession));
                 }else {
 
                     // Check if channel Exist from the website
@@ -787,13 +824,13 @@ function handleChannel(intent, session, callback){
                         // Blank or Bad Channel
                         shouldEndSession = false;
                         if(channel == "" || typeof intent.slots.channel.value == "undefined"){
-                            speechOutput = "I'm not sure what Channel you want to go to, please try again";
-                            repromptText = "I'm not sure what Channel you want to go to. You can say go to Channel ABS?";
-                            callback(sessionAttributes, buildSpeechletResponse("No Channel Specified", speechOutput, repromptText, shouldEndSession));
+                            speechOutput = channelNullSpeech;
+                            repromptText = channelNullSpeechReprompt;
+                            callback(sessionAttributes, buildSpeechletResponse(channelNullCard, speechOutput, repromptText, shouldEndSession));
                         }else{
-                            speechOutput = channel + " channel was not found on the companion website. Try another channel";
-                            repromptText = "What Channel do you want to go to?";
-                            callback(sessionAttributes, buildSpeechletResponse("Channel Not Found", speechOutput, repromptText, shouldEndSession));
+                            speechOutput = channel + channelBadSpeech;
+                            repromptText = channelBadSpeechReprompt;
+                            callback(sessionAttributes, buildSpeechletResponse(channelBadCard, speechOutput, repromptText, shouldEndSession));
                         }
 
                     }else {
@@ -830,9 +867,9 @@ function handleChannel(intent, session, callback){
                             console.log(err);
 
                             if (err) {
-                                speechOutput = "Could not send signals to " + channel;
+                                speechOutput = noSignalSpeech + channel;
                             } else {
-                                speechOutput = "OK"
+                                speechOutput = okSpeech;
                             }
 
                             callback(sessionAttributes, buildSpeechletResponse(channel, speechOutput, repromptText, shouldEndSession));
@@ -842,14 +879,11 @@ function handleChannel(intent, session, callback){
 
                 }
             }else{
-                repromptText = "";
-                sessionAttributes = {};
-                speechOutput = error;
 
                 if (error.code=== 'ETIMEDOUT') {
-                    callback(sessionAttributes, buildSpeechletResponse("Server Timed Out", "Server Timed Out", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(serverTimeOutCard, serverTimeOutSpeech, repromptText, shouldEndSession));
                 }else{
-                    callback(sessionAttributes, buildSpeechletResponse("Error Getting Data", "Error Getting Data", repromptText, shouldEndSession));
+                    callback(sessionAttributes, buildSpeechletResponse(errorCard, errorSpeech, repromptText, shouldEndSession));
                 }
             }
 
@@ -867,21 +901,8 @@ function handleChannel(intent, session, callback){
  * @param callback
  */
 function handleGetHelpRequest(intent, session, callback) {
-    var speechOutput = "<speak>There are 5 core commands you can say: \
-                        1 <break time='1s'/> What are my Activities? <break time='1s'/> \
-                        2 <break time='1s'/> Call Activity by name, such as  <break time='1s'/> \
-                           Watch TV or  <break time='1s'/>\
-                           Increase Volume  <break time='1s'/>\
-                        3 <break time='1s'/> Press any button on your device, by saying  <break time='1s'/> \
-                           Press Volume button on my Soundbar  <break time='1s'/>  or \
-                           Press Volume button on my Sony 5 Times <break time='1s'/> \
-                        4 <break time='1s'/> Get a list of Channels by saying  <break time='1s'/> \
-                           List My Channels<break time='1s'/> \
-                        and the last command you can say is  <break time='1s'/> \
-                        5 <break time='1s'/> Change Channel, by saying <break time='1s'/> \
-                            Go to ABC <break time='1s'/> or \
-                            <break time='1s'/> Go to Fox Channel</speak>",
-        repromptText = "What do you want to do?";
+    var speechOutput = helpSpeech,
+        repromptText = helpSpeechReprompt;
     var shouldEndSession = false;
 
     console.log(intent.name);
@@ -897,7 +918,7 @@ function handleGetHelpRequest(intent, session, callback) {
  */
 function handleFinishSessionRequest(intent, session, callback) {
     console.log(intent.name);
-    callback(session.attributes, buildSpeechletResponseWithoutCard("Thanks for using Voice Remote!", "", true));
+    callback(session.attributes, buildSpeechletResponseWithoutCard(finishCard, "", true));
 }
 
 // ******************************************************************************** //
