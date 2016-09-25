@@ -1,3 +1,8 @@
+
+----------------------------- LIVE -----------------------------
+ * v 0.14 Added Timeout to SimpleTach
+ * v 0.13 Certified
+ * v 0.12 Moved Speech Text Outside Functions & fixed Reprompt
  * v 0.11 Fixed Reprompt Issues and Channel is blank or bad
  * v 0.10 Added Server Timeout
  * v 0.9 Updated Namespace, Added Debug to Website / Activity and Channel List and flipped shouldEndSession

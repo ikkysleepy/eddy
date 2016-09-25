@@ -13,29 +13,41 @@ AudioOffIntent Audio Off
 AudioOffIntent Turn Off Audio
 AudioOnIntent Audio On
 AudioOnIntent Turn On Audio
+AudioOnIntent Turn On The Audio
 BedIntent Bed
 BedIntent Go to Bed
 BluerayOffToggleIntent Power Off Blueray
+BluerayOffToggleIntent Power Off The Blueray
 BluerayOffToggleIntent Blueray Off
 BluerayOffToggleIntent Turn Off Blueray
+BluerayOffToggleIntent Turn Off The Blueray
 BluerayOnToggleIntent Blueray On
 BluerayOnToggleIntent Turn On Blueray
+BluerayOnToggleIntent Turn On The Blueray
 CableIntent Cable
 CableIntent Watch Cable
+CableIntent Watch The Cable
+DecreaseVolumeIntent Decrease The Volume
 DecreaseVolumeIntent Decrease Volume
 DecreaseVolumeIntent Lower It Down
 DecreaseVolumeIntent Turn It down
 DVDIntent DVD
 DVDIntent Watch a DVD
+DVDOffToggleIntent Power Off The DVD
 DVDOffToggleIntent Power Off DVD
 DVDOffToggleIntent DVD Off
+DVDOffToggleIntent Turn Off The DVD
 DVDOffToggleIntent Turn Off DVD
 DVDOnToggleIntent DVD On
+DVDOnToggleIntent Turn On The DVD
 DVDOnToggleIntent Turn On DVD
+DVROffToggleIntent Power Off The DVR
 DVROffToggleIntent Power Off DVR
 DVROffToggleIntent DVR Off
+DVROffToggleIntent Turn Off The DVR
 DVROffToggleIntent Turn Off DVR
 DVROnToggleIntent DVR On
+DVROnToggleIntent Turn On The DVR
 DVROnToggleIntent Turn On DVR
 FastForwardIntent Fast Forward
 FireTVIntent Fire T.V.
@@ -45,6 +57,7 @@ GameIntent Play Game
 GoBackIntent Back
 GoBackIntent Go Back
 IncreaseVolumeIntent Higher It Up
+IncreaseVolumeIntent Increase The Volume
 IncreaseVolumeIntent Increase Volume
 IncreaseVolumeIntent Turn It up
 ListenMusicIntnet Listen to Music
@@ -76,11 +89,18 @@ SkipIntent Skip
 SonosIntent Listen to Sonos
 SonosIntent Sonos
 TivoOnToggleIntent Tivo On
+TivoOnToggleIntent Turn On The Tivo
 TivoOnToggleIntent Turn On Tivo
+TVOffIntent Power Off TV
 TVOffIntent Power Off T.V.
+TVOffIntent Power Off The T.V.
+TVOffIntent Power Off The TV
 TVOffIntent Turn Off T.V.
 TVOffIntent T.V. off
 TVOnIntent Turn On T.V.
+TVOnIntent Turn On TV
+TVOnIntent Turn On The T.V.
+TVOnIntent Turn On The TV
 TVOnIntent T.V. On
 WatchMovieIntent Movie
 WatchMovieIntent Movie On
@@ -90,6 +110,8 @@ WatchTVIntent T.V.
 WatchTVIntent Watch the Tube
 WatchTVIntent Watch T.V.
 WatchTVIntent Watch TV
+WatchTVIntent Watch The TV
+WatchTVIntent Watch The T.V.
 WatchMyShowIntent Watch My Show
 WatchMyShowIntent My Show
 WiiIntent Play Wii

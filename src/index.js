@@ -5,12 +5,11 @@
 // ******************************************************************************** //
 /**
  * Eddy (Voice Remote) Skill for Amazon Alexa
- * v 0.12 - August 24, 2016
+ * v 0.14 - August 24, 2016
  *
  * Requires an account on: https://eddy.tinyelectrons.com
  *
  * Notes:
- * Moved Speech Text Outside Functions & fixed Reprompt
  *
  * Test
  * -------------
@@ -129,6 +128,7 @@ var finishCard = "Thanks for using Voice Remote!";
 /** @namespace event.session.application */
 /** @namespace event.session.application.applicationId */
 /** @namespace event.session */
+//noinspection JSUnresolvedVariable
 /** @namespace event.session.new */
 //noinspection JSUnresolvedVariable
 exports.handler = function (event, context) {
@@ -178,7 +178,7 @@ exports.handler = function (event, context) {
  * Called when the session starts.
  */
 function onSessionStarted(sessionStartedRequest, session) {
-    console.log("onSessionStarted requestId=" + sessionStartedRequest.requestId + ", sessionId=" + session.sessionId);
+    console.log("onSessionStarted v 0.14 requestId=" + sessionStartedRequest.requestId + ", sessionId=" + session.sessionId);
 
     // add any session init logic here
 }
@@ -221,6 +221,7 @@ function onIntent(intentRequest, session, callback) {
     }else if (inArray) {
         handleActivity(intent, session, callback);
     }else {
+        console.log(intent);
         handleFinishSessionRequest(intent, session, callback);
     }
 }
@@ -401,9 +402,9 @@ function handleChannelList(intent, session, callback) {
                         }
                     }
 
-                    var response = buildSpeechletResponse(channelListCard, speechOutput, repromptText, shouldEndSession)
-                    if(myResponse.user.debug) {console.log(response);}
-                    callback(sessionAttributes, response);
+                    var channelListResponse = buildSpeechletResponse(channelListCard, speechOutput, repromptText, shouldEndSession);
+                    if(myResponse.user.debug) {console.log(channelListResponse);}
+                    callback(sessionAttributes, channelListResponse);
                 }
             }else{
 
@@ -872,7 +873,7 @@ function handleChannel(intent, session, callback){
                                 speechOutput = okSpeech;
                             }
 
-                            callback(sessionAttributes, buildSpeechletResponse(channel, speechOutput, repromptText, shouldEndSession));
+                            callback(sessionAttributes, buildSpeechletResponse(intent.slots.channel.value, speechOutput, repromptText, shouldEndSession));
                         });
 
                     }

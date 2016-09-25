@@ -33,6 +33,7 @@ Itach.prototype.send = function (command, callback) {
     }
 
     socket.setEncoding('ASCII');
+    socket.setTimeout(1000 * 2);
     socket.connect(this.port, this.host);
     socket.on('data', function (chunk) {
         res.push(chunk);
@@ -53,6 +54,10 @@ Itach.prototype.send = function (command, callback) {
             return callback(err);
         }
         return callback(null, res);
+    });
+    socket.on('timeout', function(timedOutSocket) {
+        timedOutSocket.write('Host Timed Out!');
+        timedOutSocket.end();
     });
 
     // write first command
